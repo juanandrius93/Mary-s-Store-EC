@@ -14,7 +14,6 @@ sheet_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=cs
 @st.cache_data(ttl=60)
 def cargar_inventario_desde_drive():
     try:
-        # Lee directamente los datos de tu Google Sheet
         df = pd.read_csv(sheet_url)
         return df
     except Exception as e:
@@ -30,7 +29,7 @@ if menu == "🛍️ Catálogo (Clientes)":
     st.header("Catálogo Disponible - Envíos a todo el Ecuador")
     
     if df_inventario.empty:
-        st.warning("Cargando inventario o verifica que tu Google Sheet tenga permisos públicos.")
+        st.warning("Cargando inventario o verifica que tu Google Sheet tenga permisos públicos de lectura.")
     else:
         # Filtro por categoría y búsqueda
         col_f1, col_f2 = st.columns(2)
@@ -76,7 +75,7 @@ elif menu == "🔒 Gestión Interna (Administrador & Proveedores)":
     if not df_inventario.empty:
         st.subheader("Inventario Actual sincronizado con Google Sheets")
         st.dataframe(df_inventario[["ID", "Modelo", "Categoría", "Stock", "Estado", "Proveedor"]])
-        st.info("💡 Para actualizar el stock, cambiar precios o agregar nuevos zapatos, solo edita tu archivo en Google Sheets y la página se actualizará sola.")
+        st.info("💡 A partir de ahora, cada vez que actualices precios, stock o agregues modelos en tu Google Sheet, la página web reflejará los cambios automáticamente.")
 
 elif menu == "🏢 Modo Mayorista":
     st.header("Zona de Ventas al Por Mayor (Activada por Temporada)")
