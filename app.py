@@ -7,8 +7,8 @@ st.set_page_config(page_title="Babayork Urban & Mary's Store Ec", page_icon="�
 st.title("👠 Babayork Urban / Mary’s Store Ec - Tienda Online")
 st.markdown("---")
 
-# Enlace de tu Google Sheet de Inventario en el Drive
-SHEET_ID = "1P3GVavBtKvsrPVKJbq5IUB6SUfVzTbN9"
+# Enlace oficial de tu Google Sheet de Inventario en el Drive
+SHEET_ID = "1LGRa-BfRkiRbyqukW0aWWpHJh2tKV_W-IgB0SRbx8N0"
 sheet_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
 
 @st.cache_data(ttl=60)
@@ -34,7 +34,7 @@ if menu == "🛍️ Catálogo (Clientes)":
         # Filtro por categoría y búsqueda
         col_f1, col_f2 = st.columns(2)
         with col_f1:
-            categorias = ["Todos"] + list(df_inventario["Categoría"].unique())
+            categorias = ["Todos"] + list(df_inventario["Categoría"].unique()) if "Categoría" in df_inventario.columns else ["Todos"]
             cat_seleccionada = st.selectbox("Filtrar por tipo de zapato:", categorias)
         with col_f2:
             busqueda = st.text_input("Buscar modelo específico:")
@@ -47,23 +47,24 @@ if menu == "🛍️ Catálogo (Clientes)":
 
         # Mostrar productos en una cuadrícula bonita
         for index, row in df_filtrado.iterrows():
-            st.markdown(f"### {row['Modelo']} ({row['Categoría']})")
+            st.markdown(f"### {row.get('Modelo', 'Zapato')} ({row.get('Categoría', 'Calzado')})")
             col1, col2 = st.columns([1, 2])
             with col1:
                 if pd.notna(row.get("Enlace Imagen")):
                     st.image(str(row["Enlace Imagen"]), width=250)
             with col2:
-                st.markdown(f"**Precio Oferta:** ${row['Precio Oferta ($)']}")
-                st.write(f"**Material:** {row['Material']} | **Tallas:** {row['Tallas']}")
-                st.write(f"**Colores:** {row['Colores Disponibles']}")
-                st.write(f"**Estado:** {row['Estado']}")
+                precio_oferta = row.get('Precio Oferta ($)', row.get('Precio ($)', 19.99))
+                st.markdown(f"**Precio Oferta:** ${precio_oferta}")
+                st.write(f"**Material:** {row.get('Material', 'Estándar')} | **Tallas:** {row.get('Tallas', '34-40')}")
+                st.write(f"**Colores:** {row.get('Colores Disponibles', 'Varios')}")
+                st.write(f"**Estado:** {row.get('Estado', 'Disponible')}")
                 
-                talla_elegida = st.selectbox(f"Elige talla para {row['Modelo']}", ["34", "35", "36", "37", "38", "39", "40"], key=f"talla_{row['ID']}")
-                color_elegido = st.text_input(f"Escribe el color deseado", key=f"color_{row['ID']}")
+                talla_elegida = st.selectbox(f"Elige talla para {row.get('Modelo', 'Zapato')}", ["34", "35", "36", "37", "38", "39", "40"], key=f"talla_{index}")
+                color_elegido = st.text_input(f"Escribe el color deseado", key=f"color_{index}")
                 
-                if str(row["Estado"]).strip() == "Disponible":
-                    if st.button(f"🛒 Pedir {row['Modelo']}", key=f"btn_{row['ID']}"):
-                        st.success(f"¡Pedido registrado! Envía este mensaje al WhatsApp **0959276539**: Hola, quiero el modelo {row['Modelo']}, Talla {talla_elegida}, Color {color_elegido}.")
+                if str(row.get("Estado", "Disponible")).strip() == "Disponible":
+                    if st.button(f"🛒 Pedir {row.get('Modelo', 'Zapato')}", key=f"btn_{index}"):
+                        st.success(f"¡Pedido registrado! Envía este mensaje al WhatsApp **0959276539**: Hola, quiero el modelo {row.get('Modelo')}, Talla {talla_elegida}, Color {color_elegido}.")
                 else:
                     st.warning("Producto agotado temporalmente o en preventa con proveedor.")
             st.markdown("---")
@@ -74,7 +75,7 @@ elif menu == "🔒 Gestión Interna (Administrador & Proveedores)":
     
     if not df_inventario.empty:
         st.subheader("Inventario Actual sincronizado con Google Sheets")
-        st.dataframe(df_inventario[["ID", "Modelo", "Categoría", "Stock", "Estado", "Proveedor"]])
+        st.dataframe(df_inventario)
         st.info("💡 A partir de ahora, cada vez que actualices precios, stock o agregues modelos en tu Google Sheet, la página web reflejará los cambios automáticamente.")
 
 elif menu == "🏢 Modo Mayorista":
@@ -82,7 +83,7 @@ elif menu == "🏢 Modo Mayorista":
     st.info("Aquí los distribuidores autorizados pueden visualizar precios especiales por volumen (Mínimo 6 pares).")
     
     if not df_inventario.empty:
-        st.dataframe(df_inventario[["Modelo", "Material", "Precio Oferta ($)", "Proveedor"]])
+        st.dataframe(df_inventario)
     st.markdown("### Requisitos Mayoristas")
     st.write("- Compra mínima: 6 pares surtidos.")
     st.write("- Descuento especial aplicado por temporada.")
