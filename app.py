@@ -7,43 +7,21 @@ st.set_page_config(page_title="Babayork Urban & Mary's Store Ec", page_icon="�
 st.title("👠 Babayork Urban / Mary’s Store Ec - Tienda Online")
 st.markdown("---")
 
-# Simulación de Inventario sincronizado (Imágenes reales de tus catálogos y zapatos)
-@st.cache_data
-def cargar_inventario():
-    data = {
-        "ID": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-        "Modelo": [
-            "Edilma", "Lunita", "Flats Cadena", "Triple Lazo", 
-            "Lazo Grande Redondo", "Puntudo Labrado", "Moca Correa", "Mocasín", 
-            "Canasta Tejida", "Lasito Combinado", "Response 2", "Metcon Presto"
-        ],
-        "Categoría": ["Baletas", "Sandalias", "Baletas", "Baletas", "Baletas", "Baletas", "Baletas", "Baletas", "Baletas", "Baletas", "Deportivos", "Deportivos"],
-        "Material": ["Cuero - Gamusa", "Charol", "Cuero", "Charol", "Cuero", "Cabulla", "Charol", "Gamusa", "Cuero", "Jeans", "Sintético Transpirable", "Malla / Sintético"],
-        "Tallas": ["34-40", "34-40", "34-40", "34-40", "34-40", "34-40", "34-40", "34-40", "34-40", "34-40", "36-40", "36-40"],
-        "Colores": ["Beige, rojo, negro", "Negro", "Café, Negro, Palo Rosa", "Negro, café, rojo, dorado", "Dorado, Rojo, Negro, Rosa", "Cabulla", "Rojo, negro", "Vino, Negro, azul marino", "Negro, Palo rosa, Café", "Jeans/Café", "Gris, Blanco", "Verde militar, Blanco"],
-        "Precio": [24.99, 24.99, 24.99, 24.99, 24.99, 24.99, 24.99, 24.99, 24.99, 24.99, 45.00, 49.99],
-        "Precio Oferta": [19.99, 19.99, 19.99, 19.99, 19.99, 19.99, 19.99, 19.99, 19.99, 19.99, 39.99, 44.99],
-        "Stock": [15, 8, 12, 10, 6, 5, 14, 9, 11, 7, 20, 15],
-        "Estado": ["Disponible", "Disponible", "Disponible", "Disponible", "Disponible", "Agotado Temporal", "Disponible", "Disponible", "Disponible", "Disponible", "Disponible", "Disponible"],
-        "Proveedor": ["Calzado Leonel", "Calzado Leonel", "Calzado Leonel", "Calzado Leonel", "Calzado Leonel", "Calzado Leonel", "Calzado Leonel", "Calzado Leonel", "Calzado Leonel", "Calzado Leonel", "Proveedor Sport", "Proveedor Sport"],
-        "Imagen": [
-            "https://images.unsplash.com/photo-1543163521-1bf539c55dd2",
-            "https://images.unsplash.com/photo-1535043934128-cf0b28d52f95",
-            "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a",
-            "https://images.unsplash.com/photo-1560769629-975ec94e6a86",
-            "https://images.unsplash.com/photo-1608256246200-53e635b5b65f",
-            "https://images.unsplash.com/photo-1575537302964-96cd47c06b1b",
-            "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77",
-            "https://images.unsplash.com/photo-1512374382146-233842d6a83b",
-            "https://images.unsplash.com/photo-1549298916-b41d501d3772",
-            "https://images.unsplash.com/photo-1515955656352-a1fa3ffcd111",
-            "https://images.unsplash.com/photo-1542291026-7eec264c27ff",
-            "https://images.unsplash.com/photo-1608231387042-66d1773070a5"
-        ]
-    }
-    return pd.DataFrame(data)
+# Enlace de tu Google Sheet de Inventario en el Drive
+SHEET_ID = "1P3GVavBtKvsrPVKJbq5IUB6SUfVzTbN9"
+sheet_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
 
-df_inventario = cargar_inventario()
+@st.cache_data(ttl=60)
+def cargar_inventario_desde_drive():
+    try:
+        # Lee directamente los datos de tu Google Sheet
+        df = pd.read_csv(sheet_url)
+        return df
+    except Exception as e:
+        st.error(f"Error al conectar con Google Sheets: {e}")
+        return pd.DataFrame()
+
+df_inventario = cargar_inventario_desde_drive()
 
 # Menú lateral para navegar entre Cliente y Administrador
 menu = st.sidebar.selectbox("Selecciona el Módulo", ["🛍️ Catálogo (Clientes)", "🔒 Gestión Interna (Administrador & Proveedores)", "🏢 Modo Mayorista"])
@@ -51,62 +29,61 @@ menu = st.sidebar.selectbox("Selecciona el Módulo", ["🛍️ Catálogo (Client
 if menu == "🛍️ Catálogo (Clientes)":
     st.header("Catálogo Disponible - Envíos a todo el Ecuador")
     
-    # Filtro por categoría y búsqueda
-    col_f1, col_f2 = st.columns(2)
-    with col_f1:
-        cat_seleccionada = st.selectbox("Filtrar por tipo de zapato:", ["Todos", "Baletas", "Sandalias", "Deportivos"])
-    with col_f2:
-        busqueda = st.text_input("Buscar modelo específico:")
+    if df_inventario.empty:
+        st.warning("Cargando inventario o verifica que tu Google Sheet tenga permisos públicos.")
+    else:
+        # Filtro por categoría y búsqueda
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            categorias = ["Todos"] + list(df_inventario["Categoría"].unique())
+            cat_seleccionada = st.selectbox("Filtrar por tipo de zapato:", categorias)
+        with col_f2:
+            busqueda = st.text_input("Buscar modelo específico:")
 
-    df_filtrado = df_inventario
-    if cat_seleccionada != "Todos":
-        df_filtrado = df_filtrado[df_filtrado["Categoría"] == cat_seleccionada]
-    if busqueda:
-        df_filtrado = df_filtrado[df_filtrado["Modelo"].str.contains(busqueda, case=False, na=False)]
+        df_filtrado = df_inventario
+        if cat_seleccionada != "Todos":
+            df_filtrado = df_filtrado[df_filtrado["Categoría"] == cat_seleccionada]
+        if busqueda:
+            df_filtrado = df_filtrado[df_filtrado["Modelo"].str.contains(busqueda, case=False, na=False)]
 
-    # Mostrar productos en una cuadrícula bonita
-    for index, row in df_filtrado.iterrows():
-        st.markdown(f"### {row['Modelo']} ({row['Categoría']})")
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.image(row["Imagen"], width=250)
-        with col2:
-            st.markdown(f"**Precio:** ~${row['Precio']}~ **Oferta: ${row['Precio Oferta']}**")
-            st.write(f"**Material:** {row['Material']} | **Tallas:** {row['Tallas']}")
-            st.write(f"**Colores:** {row['Colores']}")
-            st.write(f"**Estado:** {row['Estado']}")
-            
-            talla_elegida = st.selectbox(f"Elige talla (34-40) para {row['Modelo']}", ["34", "35", "36", "37", "38", "39", "40"], key=f"talla_{row['ID']}")
-            color_elegido = st.text_input(f"Escribe el color deseado", key=f"color_{row['ID']}")
-            
-            if row["Estado"] == "Disponible":
-                if st.button(f"🛒 Pedir {row['Modelo']}", key=f"btn_{row['ID']}"):
-                    st.success(f"¡Pedido registrado! Envía este mensaje al WhatsApp **0959276539**: Hola, quiero el modelo {row['Modelo']}, Talla {talla_identifier := talla_elegida}, Color {color_elegido}.")
-            else:
-                st.warning("Producto agotado temporalmente o en preventa con proveedor.")
-        st.markdown("---")
+        # Mostrar productos en una cuadrícula bonita
+        for index, row in df_filtrado.iterrows():
+            st.markdown(f"### {row['Modelo']} ({row['Categoría']})")
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                if pd.notna(row.get("Enlace Imagen")):
+                    st.image(str(row["Enlace Imagen"]), width=250)
+            with col2:
+                st.markdown(f"**Precio Oferta:** ${row['Precio Oferta ($)']}")
+                st.write(f"**Material:** {row['Material']} | **Tallas:** {row['Tallas']}")
+                st.write(f"**Colores:** {row['Colores Disponibles']}")
+                st.write(f"**Estado:** {row['Estado']}")
+                
+                talla_elegida = st.selectbox(f"Elige talla para {row['Modelo']}", ["34", "35", "36", "37", "38", "39", "40"], key=f"talla_{row['ID']}")
+                color_elegido = st.text_input(f"Escribe el color deseado", key=f"color_{row['ID']}")
+                
+                if str(row["Estado"]).strip() == "Disponible":
+                    if st.button(f"🛒 Pedir {row['Modelo']}", key=f"btn_{row['ID']}"):
+                        st.success(f"¡Pedido registrado! Envía este mensaje al WhatsApp **0959276539**: Hola, quiero el modelo {row['Modelo']}, Talla {talla_elegida}, Color {color_elegido}.")
+                else:
+                    st.warning("Producto agotado temporalmente o en preventa con proveedor.")
+            st.markdown("---")
 
 elif menu == "🔒 Gestión Interna (Administrador & Proveedores)":
     st.header("Panel de Control Privado (Inventario y Proveedores)")
     st.warning("Zona exclusiva para el administrador de Mary's Store Ec.")
     
-    st.subheader("Inventario Actualizado")
-    st.dataframe(df_inventario[["ID", "Modelo", "Categoría", "Stock", "Estado", "Proveedor"]])
-    
-    st.subheader("Modificar Stock o Estado")
-    prod_a_editar = st.selectbox("Selecciona el modelo a modificar:", df_inventario["Modelo"])
-    nuevo_stock = st.number_input("Nuevo Stock:", min_value=0, value=10)
-    nuevo_estado = st.selectbox("Estado:", ["Disponible", "Agotado Temporal", "Preventa / Próximamente"])
-    
-    if st.button("Guardar Cambios en Stock"):
-        st.success(f"¡El producto {prod_a_editar} se ha actualizado correctamente en el sistema!")
+    if not df_inventario.empty:
+        st.subheader("Inventario Actual sincronizado con Google Sheets")
+        st.dataframe(df_inventario[["ID", "Modelo", "Categoría", "Stock", "Estado", "Proveedor"]])
+        st.info("💡 Para actualizar el stock, cambiar precios o agregar nuevos zapatos, solo edita tu archivo en Google Sheets y la página se actualizará sola.")
 
 elif menu == "🏢 Modo Mayorista":
     st.header("Zona de Ventas al Por Mayor (Activada por Temporada)")
     st.info("Aquí los distribuidores autorizados pueden visualizar precios especiales por volumen (Mínimo 6 pares).")
     
-    st.dataframe(df_inventario[["Modelo", "Material", "Precio Oferta", "Proveedor"]])
+    if not df_inventario.empty:
+        st.dataframe(df_inventario[["Modelo", "Material", "Precio Oferta ($)", "Proveedor"]])
     st.markdown("### Requisitos Mayoristas")
     st.write("- Compra mínima: 6 pares surtidos.")
     st.write("- Descuento especial aplicado por temporada.")
-    st.write("- Para activar o desactivar este módulo de forma automática, comunícate con soporte.")
