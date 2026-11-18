@@ -18,21 +18,19 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilos CSS (Restaurados para diseño original principal)
+# Estilos CSS
 st.markdown("""
 <style>
     .block-container { padding-top: 1.5rem !important; padding-bottom: 3rem !important; }
     .top-utility-bar { display: flex; justify-content: flex-end; gap: 20px; font-size: 0.78rem; color: #4b5563; border-bottom: 1px solid #f3f4f6; padding-bottom: 6px; margin-bottom: 12px; font-weight: 500; text-transform: uppercase; }
     .top-utility-highlight { color: #e11d48; font-weight: 700; }
     
-    /* Cintillo original para títulos */
     .category-banner-black { background-color: #1a1a1a; color: #ffffff; padding: 18px 28px; font-size: 1.65rem; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; margin-top: 8px; margin-bottom: 12px; text-align: center; }
     
     .product-img-wrapper { position: relative; background-color: #f9fafb; border-radius: 4px; overflow: hidden; margin-bottom: 10px; text-align: center; cursor: pointer; }
     .product-img-wrapper img { width: 100%; height: 270px; object-fit: cover; display: block; transition: transform 0.3s ease; }
     .product-img-wrapper img:hover { transform: scale(1.03); }
     
-    /* Etiqueta de descuento en imagen */
     .badge-discount { position: absolute; top: 10px; right: 10px; background-color: #e11d48; color: #ffffff; padding: 4px 9px; font-size: 0.78rem; font-weight: 700; border-radius: 2px; z-index: 2; }
     .badge-new { position: absolute; bottom: 10px; right: 10px; background-color: #7c7c7c; color: #ffffff; padding: 3px 10px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; z-index: 2; }
     
@@ -201,7 +199,6 @@ if st.session_state.producto_seleccionado:
         
     c_img, c_det = st.columns([1, 1])
     
-    # Filtrar el dataframe completo para buscar todas las variantes de color de este modelo
     variantes_modelo = df_inv[df_inv["Modelo"] == prod["modelo"]]
     colores_disp = list(variantes_modelo["Color"].dropna().unique())
     if not colores_disp: colores_disp = [prod["color"]]
@@ -210,17 +207,14 @@ if st.session_state.producto_seleccionado:
         st.markdown(f"<h2>{prod['modelo']}</h2>", unsafe_allow_html=True)
         st.write(f"**Categoría:** {prod['categoria']}")
         
-        # Selector de color que actualiza la imagen
         color_elegido = st.selectbox("Selecciona el Color:", colores_disp, index=colores_disp.index(prod["color"]) if prod["color"] in colores_disp else 0)
         
-        # Encontrar la fila del color seleccionado para sacar la imagen y precios correctos
         fila_color = variantes_modelo[variantes_modelo["Color"] == color_elegido].iloc[0] if not variantes_modelo.empty else pd.Series(prod)
         
         url_img_actual = preparar_url_imagen(fila_color.get("Enlace Imagen", prod["imagen"]))
         p_ofe = limpiar_numero_float(fila_color.get("Precio Oferta ($)", prod["p_ofe"]))
         p_tarjeta = round(p_ofe * 1.06, 2)
         
-        # Diseño de precios solicitado
         st.markdown(f"""
         <div style='margin-bottom:15px;'>
             <div style='font-size:1.2rem; font-weight:bold; color:#1e293b;'>Precio Transferencia / Efectivo: <span style='color:#e11d48;'>${p_ofe:.2f}</span></div>
@@ -237,7 +231,6 @@ if st.session_state.producto_seleccionado:
             st.markdown("<div class='stock-ok'>✅ En Stock</div>", unsafe_allow_html=True)
             cant = st.number_input("Cantidad", min_value=1, max_value=stock)
             
-            # Botón añadir
             if st.button("AÑADIR AL CARRITO", type="primary", use_container_width=True):
                 st.session_state.carrito.append({
                     "modelo": prod["modelo"], "categoria": prod["categoria"], "color": color_elegido,
@@ -265,14 +258,13 @@ if st.session_state.producto_seleccionado:
         st.image(url_img_actual, use_container_width=True)
 
 # ---------------------------------------------------------
-# VISTA: CATÁLOGO PRINCIPAL (DISEÑO ORIGINAL RESTAURADO)
+# VISTA: CATÁLOGO PRINCIPAL 
 # ---------------------------------------------------------
 elif st.session_state.vista_actual == "DETAL":
     
     col_sidebar, col_catalogo = st.columns([1, 3], gap="large")
 
     with col_sidebar:
-        # Menú rojo original
         st.markdown("""
         <button style='width:100%; background-color:#c8394a; color:white; border:none; padding:12px; border-radius:4px; font-weight:bold; margin-bottom:10px;'>
             TODAS
@@ -326,7 +318,6 @@ elif st.session_state.vista_actual == "DETAL":
                         
                         etiqueta_html = f'<span class="badge-discount">-{porcentaje_desc}%</span>' if oferta_activa and porcentaje_desc > 0 else ''
                         
-                        # Imagen con click para ir a detalle
                         st.markdown(f"""
                         <div class="product-img-wrapper">
                             {etiqueta_html}
@@ -411,19 +402,17 @@ elif st.session_state.vista_actual == "CARRITO":
                     pdf_b = generar_pdf_pedido(cod, cli_d, st.session_state.carrito, costo_env + tarifa_pp, subt, tot)
                     st.download_button("Descargar Nota de Pedido (PDF)", pdf_b, f"{cod}.pdf", "application/pdf")
                     
-                    msg = f"Hola, orden *{cod}*
+                    msg = f"""Hola, orden *{cod}*
 Cliente: {nom}
 Envío a {prov}, {canton}
 Pago: {mpago}
-"
+
+"""
                     for it in st.session_state.carrito:
-                        msg += f"- {it['cantidad']}x {it['modelo']} ({it['color']} - T{it['talla']}) = ${it['subtotal']:.2f}
-"
-                    msg += f"
-Total: ${tot:.2f}"
+                        msg += f"- {it['cantidad']}x {it['modelo']} ({it['color']} - T{it['talla']}) = ${it['subtotal']:.2f}\n"
+                    msg += f"\nTotal: ${tot:.2f}"
                     
-                    if "Tarjeta" in mpago: msg += f"
-👉 Solicito Link PayPhone por ${tot:.2f} (Incluye comisiones de pasarela)."
+                    if "Tarjeta" in mpago: msg += f"\n👉 Solicito Link PayPhone por ${tot:.2f} (Incluye comisiones de pasarela)."
                     st.markdown(f'<a href="https://wa.me/593959276539?text={urllib.parse.quote(msg)}" target="_blank" class="whatsapp-btn">Enviar Pedido a WhatsApp</a>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
