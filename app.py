@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # Estilos CSS
-st.markdown("""
+st.markdown('''
 <style>
     .block-container { padding-top: 1.5rem !important; padding-bottom: 3rem !important; }
     .top-utility-bar { display: flex; justify-content: flex-end; gap: 20px; font-size: 0.78rem; color: #4b5563; border-bottom: 1px solid #f3f4f6; padding-bottom: 6px; margin-bottom: 12px; font-weight: 500; text-transform: uppercase; }
@@ -44,7 +44,7 @@ st.markdown("""
     
     .whatsapp-btn { display: block; background-color: #25D366; color: white !important; text-align: center; padding: 14px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 1.05rem; margin-top: 12px; }
 </style>
-""", unsafe_allow_html=True)
+''', unsafe_allow_html=True)
 
 if "carrito" not in st.session_state: st.session_state.carrito = []
 if "vista_actual" not in st.session_state: st.session_state.vista_actual = "DETAL"
@@ -154,13 +154,13 @@ def generar_pdf_pedido(num_orden, cl, carrito, envio, subtotal, total):
 # ---------------------------------------------------------
 # 5. Interfaz: Cabecera 
 # ---------------------------------------------------------
-st.markdown("""
+st.markdown('''
 <div class="top-utility-bar">
     <span>🚚 ENVÍOS CONFIGURABLES POR PROVINCIA</span> | 
     <span>📍 BABAHOYO: PAGO CONTRAENTREGA</span> | 
     <span class="top-utility-highlight">⭐ FIDELIDAD: 0959276539</span>
 </div>
-""", unsafe_allow_html=True)
+''', unsafe_allow_html=True)
 
 h1, h2, h3, h4 = st.columns([1, 1.2, 4.3, 2.5], vertical_alignment="center")
 with h1:
@@ -215,12 +215,12 @@ if st.session_state.producto_seleccionado:
         p_ofe = limpiar_numero_float(fila_color.get("Precio Oferta ($)", prod["p_ofe"]))
         p_tarjeta = round(p_ofe * 1.06, 2)
         
-        st.markdown(f"""
+        st.markdown(f'''
         <div style='margin-bottom:15px;'>
             <div style='font-size:1.2rem; font-weight:bold; color:#1e293b;'>Precio Transferencia / Efectivo: <span style='color:#e11d48;'>${p_ofe:.2f}</span></div>
             <div style='font-size:0.9rem; color:#64748b; margin-top:5px;'>Precio con Tarjeta (PayPhone): ${p_tarjeta:.2f} <span style='font-size:0.75rem;'>(Incluye 6% com. pasarela)</span></div>
         </div>
-        """, unsafe_allow_html=True)
+        ''', unsafe_allow_html=True)
         
         talla_sel = st.selectbox("Selecciona tu Talla:", ["34", "35", "36", "37", "38", "39", "40"])
         
@@ -242,7 +242,7 @@ if st.session_state.producto_seleccionado:
             st.markdown("<div class='stock-zero'>❌ Agotado en esta talla</div>", unsafe_allow_html=True)
             
         with st.expander("📏 Ver Guía de Tallas"):
-            st.markdown("""
+            st.markdown('''
             | Talla | Centímetros |
             |-------|-------------|
             | 34    | 22.5 cm     |
@@ -252,7 +252,7 @@ if st.session_state.producto_seleccionado:
             | 38    | 24.5 cm     |
             | 39    | 25.5 cm     |
             | 40    | 26.0 cm     |
-            """)
+            ''')
 
     with c_img:
         st.image(url_img_actual, use_container_width=True)
@@ -265,14 +265,14 @@ elif st.session_state.vista_actual == "DETAL":
     col_sidebar, col_catalogo = st.columns([1, 3], gap="large")
 
     with col_sidebar:
-        st.markdown("""
+        st.markdown('''
         <button style='width:100%; background-color:#c8394a; color:white; border:none; padding:12px; border-radius:4px; font-weight:bold; margin-bottom:10px;'>
             TODAS
         </button>
         <button style='width:100%; background-color:#1a1a1a; color:white; border:none; padding:15px; font-size:1.2rem; font-weight:bold; letter-spacing:1px; margin-bottom:20px;'>
             TODO EL CALZADO
         </button>
-        """, unsafe_allow_html=True)
+        ''', unsafe_allow_html=True)
         
         st.markdown('<div class="sidebar-filter-title">FILTROS</div>', unsafe_allow_html=True)
         
@@ -318,12 +318,12 @@ elif st.session_state.vista_actual == "DETAL":
                         
                         etiqueta_html = f'<span class="badge-discount">-{porcentaje_desc}%</span>' if oferta_activa and porcentaje_desc > 0 else ''
                         
-                        st.markdown(f"""
+                        st.markdown(f'''
                         <div class="product-img-wrapper">
                             {etiqueta_html}
                             <img src="{img}">
                         </div>
-                        """, unsafe_allow_html=True)
+                        ''', unsafe_allow_html=True)
                         
                         if st.button("Ver Detalle", key=f"det_{idx}", use_container_width=True):
                             st.session_state.producto_seleccionado = {
@@ -402,12 +402,7 @@ elif st.session_state.vista_actual == "CARRITO":
                     pdf_b = generar_pdf_pedido(cod, cli_d, st.session_state.carrito, costo_env + tarifa_pp, subt, tot)
                     st.download_button("Descargar Nota de Pedido (PDF)", pdf_b, f"{cod}.pdf", "application/pdf")
                     
-                    msg = f"""Hola, orden *{cod}*
-Cliente: {nom}
-Envío a {prov}, {canton}
-Pago: {mpago}
-
-"""
+                    msg = f"Hola, orden *{cod}*\nCliente: {nom}\nEnvío a {prov}, {canton}\nPago: {mpago}\n\n"
                     for it in st.session_state.carrito:
                         msg += f"- {it['cantidad']}x {it['modelo']} ({it['color']} - T{it['talla']}) = ${it['subtotal']:.2f}\n"
                     msg += f"\nTotal: ${tot:.2f}"
