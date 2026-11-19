@@ -355,6 +355,15 @@ def generar_pdf_pedido(num_orden, fecha_str, cliente_info, carrito, total_pares,
     pdf.cell(150, 9, "TOTAL A PAGAR:", 0, 0, "R")
     pdf.cell(40, 9, f"${total:.2f}", 0, 1, "R")
     
+    if "Transferencia" in cliente_info.get("metodo_pago", ""):
+        pdf.ln(5)
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.cell(0, 7, "CUENTAS BANCARIAS PARA TRANSFERENCIA / DEPOSITO:", ln=True)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.cell(0, 5, "Titular: Maria Jose Gonzales Arriaga | C.I.: 1205602178", ln=True)
+        pdf.cell(0, 5, "- Banco Pichincha (Cta. Ahorros): 2204179577", ln=True)
+        pdf.cell(0, 5, "- Banco Guayaquil (Cta. Ahorros): 22751072", ln=True)
+
     pdf.ln(8)
     pdf.set_font("Helvetica", "I", 9)
     pdf.multi_cell(0, 5, limpiar_texto("Importante: Este documento respalda el detalle de tu pedido. El despacho se realiza una vez confirmado el comprobante de pago en nuestro WhatsApp 0959276539."))
@@ -1071,6 +1080,55 @@ elif st.session_state.vista_actual == "CARRITO":
                         st.write(f"**Comisión Tarjeta PayPhone (6%):** ${oc['recargo_pp']:.2f}")
                     st.markdown(f"### 💰 Total a Pagar: **${oc['total']:.2f}**")
                     
+                    # MOSTRAR CUENTAS BANCARIAS ÚNICAMENTE SI CONFIRMÓ LA COMPRA POR TRANSFERENCIA
+                    if "Transferencia" in dc["metodo_pago"]:
+                        st.markdown("---")
+                        st.markdown("#### 🏦 Datos Bancarios para Transferencia / Depósito")
+                        st.info("Realiza tu transferencia por el valor total a cualquiera de nuestras cuentas oficiales y envía el comprobante junto con tu PDF por WhatsApp.")
+                        
+                        b_col1, b_col2 = st.columns(2)
+                        with b_col1:
+                            if os.path.exists("Datos Banco Pichincha.jpeg"):
+                                st.image("Datos Banco Pichincha.jpeg", use_container_width=True)
+                            elif os.path.exists("banco_pichincha.jpeg"):
+                                st.image("banco_pichincha.jpeg", use_container_width=True)
+                            else:
+                                st.markdown(
+                                    '<div style="background:#f5e642; color:#111827; padding:16px; border-radius:12px; font-family:sans-serif; box-shadow:0 3px 8px rgba(0,0,0,0.08);">'
+                                    '<div style="text-align:right; font-weight:800; font-size:1.05rem; letter-spacing:0.5px;">BANCO PICHINCHA</div>'
+                                    '<div style="margin-top:10px; font-size:0.95rem; font-weight:600;">María José Gonzales Arriaga</div>'
+                                    '<div style="font-size:0.88rem;">Cédula: 1205602178</div>'
+                                    '<div style="margin-top:10px; font-size:0.82rem;">No. de cuenta</div>'
+                                    '<div style="font-size:1.15rem; font-weight:800;">2204179577 <span style="font-size:0.9rem; font-weight:700; margin-left:8px;">Cta. Ahorros</span></div>'
+                                    '</div>',
+                                    unsafe_allow_html=True
+                                )
+                            st.caption("📋 Copiar cuenta Banco Pichincha:")
+                            st.code("2204179577", language=None)
+                            
+                        with b_col2:
+                            if os.path.exists("Datos Banco Guayaquil.jpeg"):
+                                st.image("Datos Banco Guayaquil.jpeg", use_container_width=True)
+                            elif os.path.exists("banco_guayaquil.jpeg"):
+                                st.image("banco_guayaquil.jpeg", use_container_width=True)
+                            else:
+                                st.markdown(
+                                    '<div style="background:#d92b85; color:#ffffff; padding:16px; border-radius:12px; font-family:sans-serif; box-shadow:0 3px 8px rgba(0,0,0,0.08);">'
+                                    '<div style="text-align:right; font-weight:800; font-size:1.05rem; letter-spacing:0.5px;">BANCO GUAYAQUIL</div>'
+                                    '<div style="margin-top:10px; font-size:0.95rem; font-weight:600;">María José Gonzales Arriaga</div>'
+                                    '<div style="font-size:0.88rem;">Cédula: 1205602178</div>'
+                                    '<div style="margin-top:10px; font-size:0.82rem;">No. de cuenta</div>'
+                                    '<div style="font-size:1.15rem; font-weight:800;">22751072 <span style="font-size:0.9rem; font-weight:700; margin-left:8px;">Cta. Ahorros</span></div>'
+                                    '</div>',
+                                    unsafe_allow_html=True
+                                )
+                            st.caption("📋 Copiar cuenta Banco Guayaquil:")
+                            st.code("22751072", language=None)
+                            
+                        st.caption("🪪 Copiar cédula del titular (María José Gonzales Arriaga):")
+                        st.code("1205602178", language=None)
+                        st.markdown("---")
+                    
                     st.download_button(
                         label=f"📄 1. Descargar Nota de Pedido en PDF (Orden #{oc['num_orden']})",
                         data=oc["pdf_bytes"],
@@ -1236,7 +1294,7 @@ elif st.session_state.vista_actual == "INFO":
             st.subheader("💳 Cómo Funcionan Nuestros Pagos")
             st.markdown("""
             1. **Transferencia o Depósito Bancario (Sin Recargo):**
-               Al confirmar tu pedido en el carrito, descargas tu Nota de Pedido en PDF y la envías con un clic a nuestro WhatsApp (**0959276539**). Te compartiremos los datos bancarios oficiales para tu depósito o transferencia.
+               Al confirmar tu pedido en el carrito, verás nuestras cuentas oficiales de Banco Pichincha y Banco Guayaquil, descargas tu Nota de Pedido en PDF y la envías con un clic a nuestro WhatsApp (**0959276539**) junto con tu comprobante.
             2. **Tarjeta de Crédito o Débito vía PayPhone:**
                Aceptamos tarjetas Visa y Mastercard a través de **PayPhone**. De acuerdo con las políticas de PayPhone, los cobros con tarjeta aplican una comisión de pasarela del **5% + IVA (6% total)**, valor que se detalla automáticamente en cada producto y en tu carrito.
             3. **Pago Contraentrega (Exclusivo en Babahoyo):**
