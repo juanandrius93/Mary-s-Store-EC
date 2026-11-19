@@ -34,14 +34,20 @@ def enviar_a_google_sheet(payload):
 
 # Configuración general de la tienda
 st.set_page_config(
-    page_title="Mary's Store Ec & Babayork Urban | Tienda Oficial",
+    page_title="Mary's Store EC | Tienda Online Oficial",
     page_icon="👠",
     layout="wide"
 )
 
-# Estilos CSS inspirados exactamente en el diseño Deprati aprobado
+# Estilos CSS: Layout estilo Deprati + Identidad de Marca @marys_store_ec
+# Paleta: Marfil suave (#FAF7F2), Negro charol (#1A1A1A), Caramelo (#C49A6C), Vino boutique (#9E1B32)
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
+
+    .stApp {
+        background-color: #FAF7F2;
+    }
     .block-container {
         padding-top: 3.4rem !important;
         padding-bottom: 1.5rem !important;
@@ -54,12 +60,13 @@ st.markdown("""
         gap: 10px;
         font-size: 0.75rem;
         color: #4b5563;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid #E5DFD5;
         padding-bottom: 8px;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
+        font-family: 'Montserrat', sans-serif;
         font-weight: 500;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.6px;
     }
     .top-utility-left {
         display: flex;
@@ -76,7 +83,7 @@ st.markdown("""
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        color: #374151 !important;
+        color: #1A1A1A !important;
         text-decoration: none !important;
         font-size: 0.75rem;
         font-weight: 600;
@@ -87,34 +94,105 @@ st.markdown("""
         transition: color 0.2s ease, background-color 0.2s ease;
     }
     .social-subtle:hover {
-        color: #111827 !important;
-        background-color: #f3f4f6;
+        color: #9E1B32 !important;
+        background-color: #EFEAE1;
     }
     .top-utility-highlight {
-        color: #e11d48;
+        color: #9E1B32;
         font-weight: 700;
     }
+    /* Logotipo Horizontal @marys_store_ec (Sello circular doble aro + tipografía editorial) */
+    .brand-logo-wrap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 2px 0;
+    }
+    .brand-seal {
+        width: 54px;
+        height: 54px;
+        min-width: 54px;
+        border-radius: 50%;
+        border: 1.8px solid #1A1A1A;
+        padding: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #FAF7F2;
+        box-sizing: border-box;
+    }
+    .brand-seal-inner {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 1.3px solid #C49A6C;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Playfair Display', Georgia, serif;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #1A1A1A;
+        letter-spacing: -1px;
+    }
+    .brand-text-block {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .brand-name {
+        font-family: 'Playfair Display', Georgia, serif;
+        font-size: 1.38rem;
+        font-weight: 700;
+        color: #1A1A1A;
+        line-height: 1.1;
+        letter-spacing: 0.3px;
+    }
+    .brand-divider {
+        height: 1.5px;
+        width: 100%;
+        background-color: #C49A6C;
+        margin: 4px 0 3px 0;
+    }
+    .brand-subtitle {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.62rem;
+        font-weight: 600;
+        color: #4B5563;
+        letter-spacing: 3.2px;
+        text-transform: uppercase;
+    }
+    /* Cintillo negro charol con acento caramelo */
     .category-banner-black {
-        background-color: #1a1a1a;
-        color: #ffffff;
+        background-color: #1A1A1A;
+        color: #FAF7F2;
         padding: 18px 28px;
-        font-size: 1.65rem;
-        font-weight: 400;
+        font-family: 'Playfair Display', Georgia, serif;
+        font-size: 1.6rem;
+        font-weight: 600;
         letter-spacing: 2px;
         text-transform: uppercase;
         margin-top: 8px;
         margin-bottom: 12px;
+        border-bottom: 3px solid #C49A6C;
     }
     .breadcrumbs {
-        font-size: 0.8rem;
-        color: #9ca3af;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.78rem;
+        color: #78716C;
         text-transform: uppercase;
         margin-bottom: 18px;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.6px;
+    }
+    /* Tarjetas de producto limpias sobre fondo marfil */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background-color: #FFFFFF;
+        border-color: #E7E2D8 !important;
+        border-radius: 6px !important;
     }
     .product-img-wrapper {
         position: relative;
-        background-color: #f9fafb;
+        background-color: #F5F2EC;
         border-radius: 4px;
         overflow: hidden;
         margin-bottom: 10px;
@@ -134,7 +212,7 @@ st.markdown("""
         position: absolute;
         top: 10px;
         right: 10px;
-        background-color: #e11d48;
+        background-color: #9E1B32;
         color: #ffffff;
         padding: 4px 9px;
         font-size: 0.78rem;
@@ -146,89 +224,92 @@ st.markdown("""
         position: absolute;
         bottom: 10px;
         right: 10px;
-        background-color: #7c7c7c;
-        color: #ffffff;
+        background-color: #1A1A1A;
+        color: #FAF7F2;
         padding: 3px 10px;
-        font-size: 0.72rem;
+        font-size: 0.7rem;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.8px;
         z-index: 2;
     }
     .product-title {
-        font-size: 0.98rem;
-        color: #1f2937;
-        font-weight: 600;
+        font-family: 'Playfair Display', Georgia, serif;
+        font-size: 1.05rem;
+        color: #1A1A1A;
+        font-weight: 700;
         margin: 4px 0 2px 0;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
     .product-sub {
-        font-size: 0.8rem;
-        color: #6b7280;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.78rem;
+        color: #6B7280;
         margin-bottom: 6px;
     }
     .price-offer {
-        color: #e11d48;
+        color: #9E1B32;
         font-size: 1.25rem;
         font-weight: 800;
         margin-right: 8px;
     }
     .price-regular {
         text-decoration: line-through;
-        color: #9ca3af;
+        color: #9CA3AF;
         font-size: 0.92rem;
     }
     .price-wholesale {
-        background-color: #fffbeb;
-        border: 1px solid #fde68a;
-        color: #b45309;
+        background-color: #FAF7F2;
+        border: 1px solid #C49A6C;
+        color: #7C5A34;
         padding: 3px 8px;
         border-radius: 4px;
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         font-weight: 600;
         display: inline-block;
         margin-top: 4px;
         margin-bottom: 8px;
     }
     .stock-ok {
-        color: #059669;
-        font-size: 0.82rem;
+        color: #065F46;
+        font-size: 0.8rem;
         font-weight: 700;
-        background: #ecfdf5;
+        background: #ECFDF5;
         padding: 3px 8px;
         border-radius: 4px;
         display: inline-block;
         margin-bottom: 6px;
     }
     .stock-zero {
-        color: #dc2626;
-        font-size: 0.82rem;
+        color: #991B1B;
+        font-size: 0.8rem;
         font-weight: 700;
-        background: #fef2f2;
+        background: #FEF2F2;
         padding: 3px 8px;
         border-radius: 4px;
         display: inline-block;
         margin-bottom: 6px;
     }
     .sidebar-filter-title {
-        font-size: 0.9rem;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.88rem;
         font-weight: 700;
-        letter-spacing: 0.8px;
-        color: #111827;
-        border-bottom: 2px solid #111827;
+        letter-spacing: 1px;
+        color: #1A1A1A;
+        border-bottom: 2px solid #C49A6C;
         padding-bottom: 6px;
         margin-bottom: 12px;
         text-transform: uppercase;
     }
     .payment-box-detail {
-        border: 1px solid #e5e7eb;
+        border: 1px solid #E5DFD5;
         border-radius: 10px;
         padding: 16px;
-        background-color: #ffffff;
+        background-color: #FFFFFF;
         margin: 14px 0;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        box-shadow: 0 2px 6px rgba(26, 26, 26, 0.04);
     }
     .whatsapp-btn {
         display: block;
@@ -252,15 +333,15 @@ st.markdown("""
         border-radius: 8px;
         text-decoration: none !important;
         font-weight: 700;
-        font-size: 0.95rem;
+        font-size: 0.94rem;
         margin-top: 10px;
         margin-bottom: 12px;
         box-shadow: 0 3px 8px rgba(18, 140, 126, 0.22);
     }
     .card-btn {
         display: block;
-        background-color: #1d4ed8;
-        color: white !important;
+        background-color: #1A1A1A;
+        color: #FAF7F2 !important;
         text-align: center;
         padding: 14px 20px;
         border-radius: 8px;
@@ -268,13 +349,15 @@ st.markdown("""
         font-weight: bold;
         font-size: 1.05rem;
         margin-top: 10px;
+        border: 1px solid #C49A6C;
     }
     .store-footer {
         margin-top: 28px;
         padding: 12px 22px;
-        background-color: #1a1a1a;
-        color: #d1d5db;
+        background-color: #1A1A1A;
+        color: #D1D5DB;
         border-radius: 6px;
+        border-top: 2px solid #C49A6C;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -282,8 +365,9 @@ st.markdown("""
         gap: 12px;
     }
     .footer-copy {
+        font-family: 'Montserrat', sans-serif;
         font-size: 0.76rem;
-        color: #9ca3af;
+        color: #A8A29E;
     }
     .footer-socials {
         display: flex;
@@ -297,17 +381,18 @@ st.markdown("""
         gap: 6px;
         padding: 5px 12px;
         border-radius: 4px;
-        border: 1px solid rgba(255, 255, 255, 0.22);
-        background-color: rgba(255, 255, 255, 0.05);
-        color: #f9fafb !important;
+        border: 1px solid rgba(196, 154, 108, 0.45);
+        background-color: rgba(255, 255, 255, 0.04);
+        color: #FAF7F2 !important;
         text-decoration: none !important;
+        font-family: 'Montserrat', sans-serif;
         font-size: 0.78rem;
         font-weight: 600;
         transition: background-color 0.2s ease, border-color 0.2s ease;
     }
     .footer-link:hover {
-        background-color: rgba(255, 255, 255, 0.16);
-        border-color: rgba(255, 255, 255, 0.5);
+        background-color: rgba(196, 154, 108, 0.22);
+        border-color: #C49A6C;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -394,9 +479,9 @@ def generar_pdf_pedido(num_orden, fecha_str, cliente_info, carrito, total_pares,
     pdf.add_page()
     
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "MARY'S STORE EC & BABAYORK URBAN", ln=True, align="C")
+    pdf.cell(0, 10, "MARY'S STORE EC", ln=True, align="C")
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 6, "Tienda Oficial de Calzado | WhatsApp: 0959276539", ln=True, align="C")
+    pdf.cell(0, 6, "Tienda Online Oficial | WhatsApp: 0959276539", ln=True, align="C")
     pdf.ln(5)
     
     pdf.set_font("Helvetica", "B", 12)
@@ -415,7 +500,7 @@ def generar_pdf_pedido(num_orden, fecha_str, cliente_info, carrito, total_pares,
     pdf.ln(5)
     
     pdf.set_font("Helvetica", "B", 10)
-    pdf.set_fill_color(230, 230, 230)
+    pdf.set_fill_color(235, 230, 222)
     pdf.cell(65, 8, "Modelo", 1, 0, "L", True)
     pdf.cell(45, 8, "Color", 1, 0, "C", True)
     pdf.cell(20, 8, "Talla", 1, 0, "C", True)
@@ -434,7 +519,7 @@ def generar_pdf_pedido(num_orden, fecha_str, cliente_info, carrito, total_pares,
         
     pdf.ln(4)
     pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(150, 7, "Subtotal Calzado:", 0, 0, "R")
+    pdf.cell(150, 7, "Subtotal:", 0, 0, "R")
     pdf.cell(40, 7, f"${subtotal:.2f}", 0, 1, "R")
     pdf.cell(150, 7, "Costo de Envio:", 0, 0, "R")
     pdf.cell(40, 7, f"${envio:.2f}", 0, 1, "R")
@@ -456,7 +541,7 @@ def generar_pdf_pedido(num_orden, fecha_str, cliente_info, carrito, total_pares,
 
     pdf.ln(8)
     pdf.set_font("Helvetica", "I", 9)
-    pdf.multi_cell(0, 5, limpiar_texto("Importante: Este documento respalda el detalle de tu pedido. El despacho se realiza una vez confirmado el comprobante de pago en nuestro WhatsApp 0959276539."))
+    pdf.multi_cell(0, 5, limpiar_texto("Importante: Este documento respalda el detalle de tu pedido en Mary's Store EC. El despacho se realiza una vez confirmado el comprobante de pago en nuestro WhatsApp 0959276539."))
     
     return bytes(pdf.output())
 
@@ -496,7 +581,7 @@ df_ped = cargar_sheet(URL_PED)
 total_items_carrito = sum(item["cantidad"] for item in st.session_state.carrito)
 
 # ==============================================================================
-# 1. CABECERA EXACTA A LA CAPTURA APROBADA + REDES SOCIALES DISCRETAS
+# 1. CABECERA MARY'S STORE EC + REDES SOCIALES DISCRETAS
 # ==============================================================================
 st.markdown(f"""
 <div class="top-utility-bar">
@@ -508,31 +593,35 @@ st.markdown(f"""
     <div class="top-utility-right">
         <span>🚚 ENVÍOS A TODO EL ECUADOR</span>
         <span>|</span>
-        <span>📍 PAGO CONTRAENTREGA EN BABAHOYO</span>
-        <span>|</span>
-        <span class="top-utility-highlight">⭐ FIDELIDAD & MAYORISTAS</span>
+        <span class="top-utility-highlight">⭐ CLUB DE FIDELIDAD & MAYORISTAS</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-h_col_logos, h_col_search, h_col_actions = st.columns([2.2, 4.1, 2.7], vertical_alignment="center")
+h_col_logo, h_col_search, h_col_actions = st.columns([2.4, 3.9, 2.7], vertical_alignment="center")
 
-with h_col_logos:
-    l1, l2 = st.columns(2, vertical_alignment="center")
-    with l1:
-        if os.path.exists("logo_marys.jpg"):
-            st.image("logo_marys.jpg", width=130)
-        elif os.path.exists("logo_marys.png"):
-            st.image("logo_marys.png", width=130)
-        else:
-            st.markdown("<h3 style='margin:0; font-family:serif;'>Mary's Store Ec</h3>", unsafe_allow_html=True)
-    with l2:
-        if os.path.exists("logo_babayork.jpg"):
-            st.image("logo_babayork.jpg", width=95)
-        elif os.path.exists("logo_babayork.png"):
-            st.image("logo_babayork.png", width=95)
-        else:
-            st.markdown("<h4 style='margin:0; letter-spacing:1px;'>BABAYORK URBAN</h4>", unsafe_allow_html=True)
+with h_col_logo:
+    # Prioriza el nuevo logotipo horizontal @marys_store_ec si lo subes a GitHub;
+    # mientras tanto muestra el sello circular oficial MS + tipografía editorial de @marys_store_ec.
+    if os.path.exists("logo_marys_horizontal.png"):
+        st.image("logo_marys_horizontal.png", width=230)
+    elif os.path.exists("logo_marys_horizontal.jpg"):
+        st.image("logo_marys_horizontal.jpg", width=230)
+    elif os.path.exists("logo_marys_ec.png"):
+        st.image("logo_marys_ec.png", width=230)
+    else:
+        st.markdown("""
+        <div class="brand-logo-wrap">
+            <div class="brand-seal">
+                <div class="brand-seal-inner">MS</div>
+            </div>
+            <div class="brand-text-block">
+                <div class="brand-name">Mary's Store EC</div>
+                <div class="brand-divider"></div>
+                <div class="brand-subtitle">TIENDA ONLINE</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 with h_col_search:
     busqueda = st.text_input(
@@ -562,7 +651,7 @@ with h_col_actions:
 # ==============================================================================
 # 2. MENÚ HORIZONTAL DE CATEGORÍAS (ESTILO DEPRATI EXACTO)
 # ==============================================================================
-st.markdown("<hr style='margin: 8px 0; border-color: #e5e7eb;'>", unsafe_allow_html=True)
+st.markdown("<hr style='margin: 8px 0; border-color: #E5DFD5;'>", unsafe_allow_html=True)
 
 categorias_base = sorted([str(c).strip() for c in df_inv["Categoría"].dropna().unique() if str(c).strip()])
 opciones_menu = ["TODAS"] + [c.upper() for c in categorias_base] + ["🔥 REBAJAS / MAYORISTA", "ℹ️ INFO & FIDELIDAD", "🛒 IR A PAGAR"]
@@ -623,8 +712,8 @@ if st.session_state.producto_seleccionado is not None:
         mat_prod = str(fila_base.get("Material", "Cuero / Sintético")).strip()
         id_var = str(fila_base.get("ID_Variante", "001")).strip()
         
-        st.markdown(f"<h2 style='margin-bottom:2px; color:#111827;'>{nombre_mod_sel}</h2>", unsafe_allow_html=True)
-        st.caption(f"Código: **MB-00{id_var}** | Categoría: **{cat_prod}** | Marca: **Mary's Store Ec / Babayork Urban**")
+        st.markdown(f"<h2 style='margin-bottom:2px; color:#1A1A1A; font-family:Playfair Display, serif;'>{nombre_mod_sel}</h2>", unsafe_allow_html=True)
+        st.caption(f"Código: **MS-00{id_var}** | Categoría: **{cat_prod}** | Tienda: **Mary's Store EC**")
         
         colores_disponibles = list(variantes_prod["Color"].dropna().unique())
         idx_col = colores_disponibles.index(color_inicial) if (color_inicial in colores_disponibles) else 0
@@ -649,18 +738,18 @@ if st.session_state.producto_seleccionado is not None:
         
         st.markdown(f"""
         <div class="payment-box-detail">
-            <div style="font-size:0.78rem; color:#0284c7; font-weight:700; text-transform:uppercase; margin-bottom:8px;">
+            <div style="font-size:0.78rem; color:#7C5A34; font-weight:700; text-transform:uppercase; margin-bottom:8px; letter-spacing:0.6px;">
                 MÉTODOS DE PAGO Y PRECIOS
             </div>
             <div style="display:flex; align-items:center; justify-content:space-between;">
-                <div style="flex:1; padding-right:14px; border-right:2px solid #111827;">
-                    <div style="font-size:0.95rem; font-weight:700; color:#111827;">Transferencia / Efectivo</div>
-                    <div style="font-size:1.55rem; font-weight:800; color:#e11d48;">${precio_base_det:.2f}</div>
+                <div style="flex:1; padding-right:14px; border-right:2px solid #C49A6C;">
+                    <div style="font-size:0.95rem; font-weight:700; color:#1A1A1A;">Transferencia / Depósito</div>
+                    <div style="font-size:1.55rem; font-weight:800; color:#9E1B32;">${precio_base_det:.2f}</div>
                     <div style="font-size:0.75rem; color:#6b7280;">Sin recargo • Mayorista: ${p_may_d:.2f} ({min_may_d}+ pares)</div>
                 </div>
                 <div style="flex:1; padding-left:16px;">
-                    <div style="font-size:0.95rem; font-weight:700; color:#111827;">Tarjeta de Crédito (PayPhone)</div>
-                    <div style="font-size:1.55rem; font-weight:800; color:#111827;">${precio_payphone_det:.2f}</div>
+                    <div style="font-size:0.95rem; font-weight:700; color:#1A1A1A;">Tarjeta de Crédito (PayPhone)</div>
+                    <div style="font-size:1.55rem; font-weight:800; color:#1A1A1A;">${precio_payphone_det:.2f}</div>
                     <div style="font-size:0.75rem; color:#6b7280;">Incluye 5% + IVA (6% comisión pasarela)</div>
                 </div>
             </div>
@@ -699,13 +788,13 @@ if st.session_state.producto_seleccionado is not None:
 
         # Botón directo de WhatsApp para consultas con la info del artículo pre-cargada
         msg_consulta_prod = (
-            f"¡Hola *Mary's Store Ec / Babayork Urban*! 👋\n"
-            f"Tengo una consulta sobre este artículo de su tienda web:\n\n"
-            f"• *Modelo:* {nombre_mod_sel} (Cód: MB-00{id_var})\n"
+            f"¡Hola *Mary's Store EC*! 👋\n"
+            f"Tengo una consulta sobre este artículo de su tienda online:\n\n"
+            f"• *Modelo:* {nombre_mod_sel} (Cód: MS-00{id_var})\n"
             f"• *Categoría:* {cat_prod}\n"
             f"• *Color:* {color_sel_det}\n"
             f"• *Talla de interés:* {talla_sel_det}\n"
-            f"• *Precio Transferencia/Efectivo:* ${precio_base_det:.2f}\n"
+            f"• *Precio Transferencia:* ${precio_base_det:.2f}\n"
             f"• *Precio Tarjeta (PayPhone):* ${precio_payphone_det:.2f}\n\n"
             f"Mi consulta es: "
         )
@@ -723,7 +812,7 @@ if st.session_state.producto_seleccionado is not None:
         - **Color seleccionado:** {color_sel_det}
         - **Material:** {mat_prod} de alta durabilidad y confort
         - **Tallas disponibles:** Horma nacional (34 al 40)
-        - **Envíos:** A todo el Ecuador por Servientrega o Cooperativa, y pago contraentrega en Babahoyo.
+        - **Envíos:** A todo el Ecuador por Servientrega o Cooperativa de Transporte.
         """)
         
         with st.expander("📏 Guía de Tallas de Calzado (Ecuador / Centímetros)", expanded=True):
@@ -751,7 +840,7 @@ if st.session_state.producto_seleccionado is not None:
         )
 
 # ==============================================================================
-# VISTA DE CATÁLOGO PRINCIPAL (100% FIEL A LA CAPTURA DEPRATI APROBADA)
+# VISTA DE CATÁLOGO PRINCIPAL (LAYOUT DEPRATI + PALETA @marys_store_ec)
 # ==============================================================================
 elif st.session_state.vista_actual in ["DETAL", "MAYORISTA"]:
     es_mayorista = (st.session_state.vista_actual == "MAYORISTA")
@@ -772,7 +861,7 @@ elif st.session_state.vista_actual in ["DETAL", "MAYORISTA"]:
         )
 
     if es_mayorista:
-        st.info("📦 **Modo Mayorista Activo:** Precios especiales por volumen (combinando tallas y colores) directamente desde la fábrica/proveedor.")
+        st.info("📦 **Modo Mayorista Activo:** Precios especiales por volumen (combinando tallas y colores) directamente en Mary's Store EC.")
 
     col_sidebar, col_catalogo = st.columns([1.15, 3.85], gap="large")
 
@@ -1052,7 +1141,7 @@ elif st.session_state.vista_actual == "CARRITO":
                 idx_cant = cantones_prov.index(ca.get("canton")) if ca.get("canton") in cantones_prov else 0
                 canton_elegido = st.selectbox("Cantón / Ciudad *", cantones_prov, index=idx_cant)
 
-            # Costo de envío según Sheet Costos_Envio (sin envío gratis fijo para Babahoyo)
+            # Costo de envío según Sheet Costos_Envio (tarifa configurada por Provincia/Cantón)
             costo_envio_calc = 5.00
             if not df_envios.empty and "Provincia" in df_envios.columns and "Cantón" in df_envios.columns:
                 match_env = df_envios[
@@ -1079,8 +1168,7 @@ elif st.session_state.vista_actual == "CARRITO":
                     "🚚 Empresa de Envío / Courier Preferido *",
                     [
                         f"Servientrega a domicilio / agencia (+${costo_envio_calc:.2f})",
-                        f"Encargo en Cooperativa de Bus Interprovincial (+${costo_envio_calc:.2f})",
-                        f"Entrega Local / Contraentrega en Babahoyo (+${costo_envio_calc:.2f})"
+                        f"Encargo en Cooperativa de Bus Interprovincial (+${costo_envio_calc:.2f})"
                     ]
                 )
                 
@@ -1088,8 +1176,7 @@ elif st.session_state.vista_actual == "CARRITO":
                     "💳 Selecciona cómo deseas pagar:",
                     [
                         "Transferencia / Depósito Bancario (Sin recargo)",
-                        "Pago en Línea con Tarjeta de Crédito / Débito - PayPhone (+6% comisión pasarela)",
-                        "Efectivo Contraentrega (Solo Babahoyo)"
+                        "Pago en Línea con Tarjeta de Crédito / Débito - PayPhone (+6% comisión pasarela)"
                     ]
                 )
                 
@@ -1192,7 +1279,7 @@ elif st.session_state.vista_actual == "CARRITO":
                         st.write(l_prod)
                     
                     st.markdown("---")
-                    st.write(f"**Subtotal Calzado ({oc['total_pares']} pares):** ${oc['subtotal']:.2f}")
+                    st.write(f"**Subtotal ({oc['total_pares']} pares):** ${oc['subtotal']:.2f}")
                     st.write(f"**Costo de Envío ({dc['canton']}):** ${oc['envio']:.2f}")
                     if oc["recargo_pp"] > 0:
                         st.write(f"**Comisión Tarjeta PayPhone (6%):** ${oc['recargo_pp']:.2f}")
@@ -1260,7 +1347,7 @@ elif st.session_state.vista_actual == "CARRITO":
                     linea_recargo_wa = f"*Comisión PayPhone (6%):* ${oc['recargo_pp']:.2f}\n" if oc["recargo_pp"] > 0 else ""
                     
                     mensaje_wa = (
-                        f"¡Hola *Mary's Store Ec / Babayork Urban*! 👠👟\n"
+                        f"¡Hola *Mary's Store EC*! 👠👟\n"
                         f"Envío mi Orden de Pedido *#{oc['num_orden']}* generada en la web:\n\n"
                         f"*DATOS DEL CLIENTE (FIDELIDAD):*\n"
                         f"• *Nombre:* {dc['nombres']} {dc['apellidos']}\n"
@@ -1291,7 +1378,7 @@ elif st.session_state.vista_actual == "CARRITO":
                         st.markdown("---")
                         st.markdown("#### 💳 Módulo de Pago con Tarjeta de Crédito / Débito (PayPhone)")
                         mensaje_pp = (
-                            f"¡Hola *Mary's Store Ec / Babayork Urban*! 💳\n"
+                            f"¡Hola *Mary's Store EC*! 💳\n"
                             f"Solicito el *Link de Pago PayPhone* por el valor total de *${oc['total']:.2f}* (incluye 6% comisión pasarela) correspondiente a mi Orden *#{oc['num_orden']}*:\n\n"
                             f"• *Cliente:* {dc['nombres']} {dc['apellidos']} (C.I.: {dc['cedula']})\n"
                             f"• *Destino:* {dc['provincia']} - {dc['canton']} ({dc['direccion']})\n"
@@ -1375,7 +1462,7 @@ elif st.session_state.vista_actual == "LOGIN":
                     cel_r = st.text_input("📱 Celular (WhatsApp) *")
                     cor_r = st.text_input("📧 Correo Electrónico *")
                     pas_r = st.text_input("🔒 Crear Contraseña *", type="password")
-                    acepta_datos = st.checkbox("✅ Acepto el uso y tratamiento de mis datos personales para la gestión de pedidos y el Programa de Fidelidad de Mary's Store Ec & Babayork Urban.")
+                    acepta_datos = st.checkbox("✅ Acepto el uso y tratamiento de mis datos personales para la gestión de pedidos y el Programa de Fidelidad de Mary's Store EC.")
                     btn_reg = st.form_submit_button("Crear mi Cuenta", type="primary", use_container_width=True)
                 if btn_reg:
                     if not (ced_r and nom_r and cel_r and cor_r and pas_r):
@@ -1409,14 +1496,14 @@ elif st.session_state.vista_actual == "INFO":
     ic1, ic2 = st.columns(2, gap="large")
     with ic1:
         with st.container(border=True):
-            st.subheader("💳 Cómo Funcionan Nuestros Pagos")
+            st.subheader("💳 Cómo Funcionan Nuestros Pagos y Envíos")
             st.markdown("""
             1. **Transferencia o Depósito Bancario (Sin Recargo):**
                Al confirmar tu pedido en el carrito, verás nuestras cuentas oficiales de Banco Pichincha y Banco Guayaquil, descargas tu Nota de Pedido en PDF y la envías con un clic a nuestro WhatsApp (**0959276539**) junto con tu comprobante.
             2. **Tarjeta de Crédito o Débito vía PayPhone:**
                Aceptamos tarjetas Visa y Mastercard a través de **PayPhone**. De acuerdo con las políticas de PayPhone, los cobros con tarjeta aplican una comisión de pasarela del **5% + IVA (6% total)**, valor que se detalla automáticamente en cada producto y en tu carrito.
-            3. **Pago Contraentrega (Exclusivo en Babahoyo):**
-               Si te encuentras en **Babahoyo**, puedes pagar en efectivo al momento de recibir tu calzado (sujeto a la tarifa de envío configurada).
+            3. **Envíos a Todo el Ecuador:**
+               Realizamos despachos seguros mediante **Servientrega** o **Cooperativa de Transporte Interprovincial**. La tarifa de envío se calcula automáticamente según tu provincia y cantón al confirmar tu orden.
             """)
     with ic2:
         with st.container(border=True):
@@ -1438,7 +1525,7 @@ elif st.session_state.vista_actual == "INFO":
 st.markdown(f"""
 <div class="store-footer">
     <div class="footer-copy">
-        © {datetime.now().year} <strong>Mary's Store Ec & Babayork Urban</strong> • Envíos a todo el Ecuador
+        © {datetime.now().year} <strong>Mary's Store EC</strong> • Envíos a todo el Ecuador
     </div>
     <div class="footer-socials">
         <a href="{URL_FACEBOOK}" target="_blank" class="footer-link"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg> Facebook</a>
