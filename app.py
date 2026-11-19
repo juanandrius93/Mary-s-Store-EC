@@ -12,6 +12,11 @@ import json
 # URL de tu Google Apps Script conectada directamente
 GOOGLE_SCRIPT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxC43z42rdBydVWuyihHfr4qR8AyZ4_mIaD3sYyAGdh67-dAVc6LUGu6vzgIZHIf57Ldg/exec"
 
+# Enlaces Oficiales de Redes Sociales
+URL_FACEBOOK = "https://www.facebook.com/share/1CN5wrLMTH/?mibextid=wwXIfr"
+URL_INSTAGRAM = "https://www.instagram.com/babayork_urban?dmpr=MWp6ejF2emtwcWVweA=="
+WHATSAPP_NUMERO = "593959276539"
+
 def enviar_a_google_sheet(payload):
     if not GOOGLE_SCRIPT_WEBHOOK_URL:
         return False
@@ -43,16 +48,52 @@ st.markdown("""
     }
     .top-utility-bar {
         display: flex;
-        justify-content: flex-end;
-        gap: 20px;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
         font-size: 0.78rem;
         color: #4b5563;
         border-bottom: 1px solid #f3f4f6;
-        padding-bottom: 6px;
+        padding-bottom: 8px;
         margin-bottom: 12px;
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+    }
+    .top-utility-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .top-utility-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .social-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        text-decoration: none !important;
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        transition: opacity 0.2s ease;
+    }
+    .social-pill:hover {
+        opacity: 0.85;
+    }
+    .social-fb {
+        background-color: #1877F2;
+        color: #ffffff !important;
+    }
+    .social-ig {
+        background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        color: #ffffff !important;
     }
     .top-utility-highlight {
         color: #e11d48;
@@ -201,11 +242,25 @@ st.markdown("""
         text-align: center;
         padding: 14px 20px;
         border-radius: 8px;
-        text-decoration: none;
+        text-decoration: none !important;
         font-weight: bold;
         font-size: 1.05rem;
         margin-top: 12px;
         box-shadow: 0 4px 10px rgba(37, 211, 102, 0.25);
+    }
+    .whatsapp-consult-btn {
+        display: block;
+        background-color: #128C7E;
+        color: white !important;
+        text-align: center;
+        padding: 11px 16px;
+        border-radius: 8px;
+        text-decoration: none !important;
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin-top: 10px;
+        margin-bottom: 12px;
+        box-shadow: 0 3px 8px rgba(18, 140, 126, 0.22);
     }
     .card-btn {
         display: block;
@@ -214,10 +269,33 @@ st.markdown("""
         text-align: center;
         padding: 14px 20px;
         border-radius: 8px;
-        text-decoration: none;
+        text-decoration: none !important;
         font-weight: bold;
         font-size: 1.05rem;
         margin-top: 10px;
+    }
+    .store-footer {
+        margin-top: 48px;
+        padding: 24px 20px;
+        background-color: #1a1a1a;
+        color: #f3f4f6;
+        border-radius: 8px;
+        text-align: center;
+    }
+    .store-footer-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+        color: #ffffff;
+    }
+    .footer-socials {
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -406,15 +484,22 @@ df_ped = cargar_sheet(URL_PED)
 total_items_carrito = sum(item["cantidad"] for item in st.session_state.carrito)
 
 # ==============================================================================
-# 1. CABECERA EXACTA A LA CAPTURA APROBADA
+# 1. CABECERA EXACTA A LA CAPTURA APROBADA + REDES SOCIALES OFICIALES
 # ==============================================================================
-st.markdown("""
+st.markdown(f"""
 <div class="top-utility-bar">
-    <span>🚚 ENVÍOS A TODO EL ECUADOR</span>
-    <span>|</span>
-    <span>📍 PAGO CONTRAENTREGA EN BABAHOYO</span>
-    <span>|</span>
-    <span class="top-utility-highlight">⭐ CLUB DE FIDELIDAD & MAYORISTAS: 0959276539</span>
+    <div class="top-utility-left">
+        <span>🌐 REDES OFICIALES:</span>
+        <a href="{URL_FACEBOOK}" target="_blank" class="social-pill social-fb">📘 Facebook</a>
+        <a href="{URL_INSTAGRAM}" target="_blank" class="social-pill social-ig">📸 Instagram</a>
+    </div>
+    <div class="top-utility-right">
+        <span>🚚 ENVÍOS A TODO EL ECUADOR</span>
+        <span>|</span>
+        <span>📍 PAGO CONTRAENTREGA EN BABAHOYO</span>
+        <span>|</span>
+        <span class="top-utility-highlight">⭐ CLUB DE FIDELIDAD & MAYORISTAS: 0959276539</span>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -599,6 +684,26 @@ if st.session_state.producto_seleccionado is not None:
                     st.rerun()
         else:
             st.markdown(f"<div class='stock-zero'>❌ Agotado en color {color_sel_det} y talla {talla_sel_det} (Stock: 0)</div>", unsafe_allow_html=True)
+
+        # Botón directo de WhatsApp para consultas con la info del artículo pre-cargada
+        msg_consulta_prod = (
+            f"¡Hola *Mary's Store Ec / Babayork Urban*! 👋\n"
+            f"Tengo una consulta sobre este artículo de su tienda web:\n\n"
+            f"• *Modelo:* {nombre_mod_sel} (Cód: MB-00{id_var})\n"
+            f"• *Categoría:* {cat_prod}\n"
+            f"• *Color:* {color_sel_det}\n"
+            f"• *Talla de interés:* {talla_sel_det}\n"
+            f"• *Precio Transferencia/Efectivo:* ${precio_base_det:.2f}\n"
+            f"• *Precio Tarjeta (PayPhone):* ${precio_payphone_det:.2f}\n\n"
+            f"Mi consulta es: "
+        )
+        url_wa_consulta = f"https://wa.me/{WHATSAPP_NUMERO}?text={urllib.parse.quote(msg_consulta_prod)}"
+        st.markdown(
+            f'<a href="{url_wa_consulta}" target="_blank" class="whatsapp-consult-btn">'
+            f'💬 ¿Tienes dudas sobre este calzado? Consultar por WhatsApp'
+            f'</a>',
+            unsafe_allow_html=True
+        )
             
         st.markdown("#### Características del Calzado:")
         st.markdown(f"""
@@ -606,7 +711,7 @@ if st.session_state.producto_seleccionado is not None:
         - **Color seleccionado:** {color_sel_det}
         - **Material:** {mat_prod} de alta durabilidad y confort
         - **Tallas disponibles:** Horma nacional (34 al 40)
-        - **Envíos:** A todo el Ecuador por Servientrega o Cooperativa, y contraentrega en Babahoyo.
+        - **Envíos:** A todo el Ecuador por Servientrega o Cooperativa, y pago contraentrega en Babahoyo.
         """)
         
         with st.expander("📏 Guía de Tallas de Calzado (Ecuador / Centímetros)", expanded=True):
@@ -935,7 +1040,8 @@ elif st.session_state.vista_actual == "CARRITO":
                 idx_cant = cantones_prov.index(ca.get("canton")) if ca.get("canton") in cantones_prov else 0
                 canton_elegido = st.selectbox("Cantón / Ciudad *", cantones_prov, index=idx_cant)
 
-            costo_envio_calc = 0.0 if (provincia_elegida == "Los Ríos" and canton_elegido == "Babahoyo") else 5.00
+            # Costo de envío según Sheet Costos_Envio (sin envío gratis fijo para Babahoyo)
+            costo_envio_calc = 5.00
             if not df_envios.empty and "Provincia" in df_envios.columns and "Cantón" in df_envios.columns:
                 match_env = df_envios[
                     (df_envios["Provincia"].astype(str).str.strip().str.lower() == provincia_elegida.lower()) &
@@ -962,7 +1068,7 @@ elif st.session_state.vista_actual == "CARRITO":
                     [
                         f"Servientrega a domicilio / agencia (+${costo_envio_calc:.2f})",
                         f"Encargo en Cooperativa de Bus Interprovincial (+${costo_envio_calc:.2f})",
-                        "Pago Contraentrega (Exclusivo dentro de Babahoyo - $0.00)"
+                        f"Entrega Local / Contraentrega en Babahoyo (+${costo_envio_calc:.2f})"
                     ]
                 )
                 
@@ -983,7 +1089,7 @@ elif st.session_state.vista_actual == "CARRITO":
                 if not (cedula and nombres and apellidos and celular and direccion):
                     st.error("⚠️ Por favor completa todos los campos obligatorios (*) para continuar.")
                 else:
-                    envio_final = 0.0 if ("Babahoyo" in courier or canton_elegido == "Babahoyo") else costo_envio_calc
+                    envio_final = costo_envio_calc
                     recargo_payphone = round(subtotal_general * 0.06, 2) if "PayPhone" in metodo_pago else 0.0
                     total_pagar = round(subtotal_general + envio_final + recargo_payphone, 2)
                     puntos_ganados = int(total_pares_carrito * 10)
@@ -1160,7 +1266,7 @@ elif st.session_state.vista_actual == "CARRITO":
                         f"Adjunto mi Nota de Pedido en PDF y quedo atento/a para finalizar el pago."
                     )
                     
-                    url_wa = f"https://wa.me/593959276539?text={urllib.parse.quote(mensaje_wa)}"
+                    url_wa = f"https://wa.me/{WHATSAPP_NUMERO}?text={urllib.parse.quote(mensaje_wa)}"
                     
                     st.markdown(
                         f'<a href="{url_wa}" target="_blank" class="whatsapp-btn">'
@@ -1180,7 +1286,7 @@ elif st.session_state.vista_actual == "CARRITO":
                             f"• *Detalle de artículos:*\n{detalle_wa_str}\n\n"
                             f"Quedo atento/a al enlace de PayPhone para realizar el pago."
                         )
-                        url_pp = f"https://wa.me/593959276539?text={urllib.parse.quote(mensaje_pp)}"
+                        url_pp = f"https://wa.me/{WHATSAPP_NUMERO}?text={urllib.parse.quote(mensaje_pp)}"
                         st.markdown(
                             f'<a href="{url_pp}" target="_blank" class="card-btn">'
                             f'💳 Solicitar Link PayPhone por ${oc["total"]:.2f} (Con Detalle del Pedido)'
@@ -1298,7 +1404,7 @@ elif st.session_state.vista_actual == "INFO":
             2. **Tarjeta de Crédito o Débito vía PayPhone:**
                Aceptamos tarjetas Visa y Mastercard a través de **PayPhone**. De acuerdo con las políticas de PayPhone, los cobros con tarjeta aplican una comisión de pasarela del **5% + IVA (6% total)**, valor que se detalla automáticamente en cada producto y en tu carrito.
             3. **Pago Contraentrega (Exclusivo en Babahoyo):**
-               Si te encuentras en **Babahoyo**, el envío es gratuito y pagas en efectivo al recibir tu calzado.
+               Si te encuentras en **Babahoyo**, puedes pagar en efectivo al momento de recibir tu calzado (sujeto a la tarifa de envío configurada).
             """)
     with ic2:
         with st.container(border=True):
@@ -1313,3 +1419,20 @@ elif st.session_state.vista_actual == "INFO":
             
             ⚠️ **Importante:** El canje de puntos por envío gratis o 2x1 se realiza **únicamente en coordinación directa vía WhatsApp (0959276539)** con la tienda al momento de validar tu pedido.
             """)
+
+# ==============================================================================
+# PIE DE PÁGINA OFICIAL CON ACCESOS DIRECTOS A REDES SOCIALES
+# ==============================================================================
+st.markdown(f"""
+<div class="store-footer">
+    <div class="store-footer-title">Síguenos en Nuestras Redes Sociales Oficiales</div>
+    <div class="footer-socials">
+        <a href="{URL_FACEBOOK}" target="_blank" class="social-pill social-fb" style="padding:8px 18px; font-size:0.88rem;">📘 Facebook Oficial</a>
+        <a href="{URL_INSTAGRAM}" target="_blank" class="social-pill social-ig" style="padding:8px 18px; font-size:0.88rem;">📸 Instagram (@babayork_urban)</a>
+        <a href="https://wa.me/{WHATSAPP_NUMERO}" target="_blank" class="social-pill" style="background-color:#25D366; color:#ffffff !important; padding:8px 18px; font-size:0.88rem;">💬 WhatsApp Atención: 0959276539</a>
+    </div>
+    <div style="font-size:0.78rem; color:#9ca3af;">
+        © {datetime.now().year} Mary's Store Ec & Babayork Urban • Todos los derechos reservados • Envíos a todo el Ecuador
+    </div>
+</div>
+""", unsafe_allow_html=True)
