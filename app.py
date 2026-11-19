@@ -6,6 +6,26 @@ import os
 import random
 from datetime import datetime
 from fpdf import FPDF
+import urllib.request
+import json
+
+# URL de tu Google Apps Script conectada directamente
+GOOGLE_SCRIPT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxC43z42rdBydVWuyihHfr4qR8AyZ4_mIaD3sYyAGdh67-dAVc6LUGu6vzgIZHIf57Ldg/exec"
+
+def enviar_a_google_sheet(payload):
+    if not GOOGLE_SCRIPT_WEBHOOK_URL:
+        return False
+    try:
+        req = urllib.request.Request(
+            GOOGLE_SCRIPT_WEBHOOK_URL,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
 
 # Configuración general de la tienda
 st.set_page_config(
@@ -521,7 +541,6 @@ if st.session_state.producto_seleccionado is not None:
         precio_base_det = p_ofe_d if en_oferta_d else p_reg_d
         precio_payphone_det = round(precio_base_det * 1.06, 2)
         
-        # Caja comparativa de precios estilo captura adjunta (Transferencia vs Tarjeta PayPhone)
         st.markdown(f"""
         <div class="payment-box-detail">
             <div style="font-size:0.78rem; color:#0284c7; font-weight:700; text-transform:uppercase; margin-bottom:8px;">
@@ -629,7 +648,6 @@ elif st.session_state.vista_actual in ["DETAL", "MAYORISTA"]:
     if es_mayorista:
         st.info("📦 **Modo Mayorista Activo:** Precios especiales por volumen (combinando tallas y colores) directamente desde la fábrica/proveedor.")
 
-    # Layout exacto: Columna izquierda de Filtros y Columna derecha con Grilla de 3 Productos
     col_sidebar, col_catalogo = st.columns([1.15, 3.85], gap="large")
 
     with col_sidebar:
@@ -748,7 +766,6 @@ elif st.session_state.vista_actual in ["DETAL", "MAYORISTA"]:
                         url_limpia = preparar_url_imagen(fila_color.get("Enlace Imagen"))
                         badge_html = f'<span class="badge-discount">-{porcentaje_desc}%</span>' if porcentaje_desc > 0 else ''
                         
-                        # HTML en una sola línea para evitar que Markdown lo interprete como bloque de código
                         foto_placeholder.markdown(
                             f'<div class="product-img-wrapper">{badge_html}<span class="badge-new">NUEVO</span><img src="{url_limpia}" alt="{nombre_modelo}"></div>',
                             unsafe_allow_html=True
@@ -869,7 +886,6 @@ elif st.session_state.vista_actual == "CARRITO":
         with col_checkout:
             st.subheader("2. Datos de Envío y Club de Fidelidad")
             
-            # Buscador de Cédula para autocompletar
             c_busq1, c_busq2 = st.columns([2.5, 1], vertical_alignment="bottom")
             with c_busq1:
                 ced_buscar = st.text_input("🪪 ¿Ya has comprado antes? Ingresa tu Cédula para autocompletar tus datos:", placeholder="Ej: 1204567890")
@@ -897,7 +913,6 @@ elif st.session_state.vista_actual == "CARRITO":
 
             ca = st.session_state.cliente_autocompletado
             
-            # Selectores de País, Provincia y Cantón fuera del form para actualización inmediata de cantones y tarifa de envío
             st.markdown("##### 🌍 Ubicación de Entrega")
             u_col1, u_col2, u_col3 = st.columns(3)
             with u_col1:
@@ -911,7 +926,6 @@ elif st.session_state.vista_actual == "CARRITO":
                 idx_cant = cantones_prov.index(ca.get("canton")) if ca.get("canton") in cantones_prov else 0
                 canton_elegido = st.selectbox("Cantón / Ciudad *", cantones_prov, index=idx_cant)
 
-            # Calcular costo de envío desde el Sheet Costos_Envio según Provincia y Cantón
             costo_envio_calc = 0.0 if (provincia_elegida == "Los Ríos" and canton_elegido == "Babahoyo") else 5.00
             if not df_envios.empty and "Provincia" in df_envios.columns and "Cantón" in df_envios.columns:
                 match_env = df_envios[
@@ -965,7 +979,6 @@ elif st.session_state.vista_actual == "CARRITO":
                     total_pagar = round(subtotal_general + envio_final + recargo_payphone, 2)
                     puntos_ganados = int(total_pares_carrito * 10)
                     
-                    # Generar código único persistente en session_state para que NO se pierda al descargar el PDF
                     fecha_actual_str = datetime.now().strftime("%d/%m/%Y %H:%M")
                     num_orden_unico = f"ORD-{datetime.now().strftime('%m%d')}-{random.randint(1000, 9999)}"
                     
@@ -990,6 +1003,33 @@ elif st.session_state.vista_actual == "CARRITO":
                         total_pares_carrito, subtotal_general, envio_final, recargo_payphone, total_pagar
                     )
                     
+                    # Enviar automáticamente la orden y el cliente al Google Sheet en estado PENDIENTE
+                    items_para_stock = [
+                        {"modelo": it["modelo"], "color": it["color"], "talla": it["talla"], "cantidad": it["cantidad"]}
+                        for it in carrito_copia
+                    ]
+                    enviar_a_google_sheet({
+                        "accion": "nuevo_pedido",
+                        "num_orden": num_orden_unico,
+                        "fecha": fecha_actual_str,
+                        "cedula": cedula,
+                        "cliente": f"{nombres} {apellidos}".strip(),
+                        "celular": celular,
+                        "provincia": provincia_elegida,
+                        "canton": canton_elegido,
+                        "direccion": direccion,
+                        "courier": courier,
+                        "detalle_texto": " | ".join(lineas_productos),
+                        "items_json": items_para_stock,
+                        "total_pares": total_pares_carrito,
+                        "subtotal": subtotal_general,
+                        "envio": envio_final,
+                        "recargo_pp": recargo_payphone,
+                        "total": total_pagar,
+                        "metodo_pago": metodo_pago,
+                        "guardar_fidelidad": guardar_fidelidad
+                    })
+
                     st.session_state.orden_confirmada = {
                         "num_orden": num_orden_unico,
                         "fecha": fecha_actual_str,
@@ -1167,6 +1207,14 @@ elif st.session_state.vista_actual == "LOGIN":
                     elif not acepta_datos:
                         st.error("⚠️ Debes aceptar el uso y manejo de datos personales para crear tu cuenta.")
                     else:
+                        enviar_a_google_sheet({
+                            "accion": "registro_cliente",
+                            "cedula": str(ced_r).strip(),
+                            "nombres": str(nom_r).strip(),
+                            "celular": str(cel_r).strip(),
+                            "correo": str(cor_r).strip(),
+                            "password": str(pas_r).strip()
+                        })
                         st.session_state.usuario_logueado = {
                             "cedula": str(ced_r).strip(),
                             "nombres": str(nom_r).strip(),
