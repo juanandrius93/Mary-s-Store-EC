@@ -15,6 +15,8 @@ from fpdf import FPDF
 import urllib.request
 import json
 import base64
+import io
+import tempfile
 
 # URL de tu Google Apps Script conectada directamente
 GOOGLE_SCRIPT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxC43z42rdBydVWuyihHfr4qR8AyZ4_mIaD3sYyAGdh67-dAVc6LUGu6vzgIZHIf57Ldg/exec"
@@ -558,6 +560,40 @@ def preparar_url_imagen(url):
         return f"https://drive.google.com/thumbnail?id={file_id}&sz=w800"
     return url_str
 
+def formatear_codigo_producto(id_valor):
+    s = limpiar_texto_campo(id_valor)
+    if not s:
+        return "MS-000"
+    if s.upper().startswith("MS-"):
+        return s.upper()
+    if s.isdigit():
+        return f"MS-{int(s):03d}"
+    return f"MS-00{s}"
+
+def descargar_imagen_para_pdf(url_o_ruta):
+    if not url_o_ruta:
+        return None
+    try:
+        from PIL import Image as PILImage
+        if os.path.exists(str(url_o_ruta)):
+            im = PILImage.open(str(url_o_ruta))
+        else:
+            req = urllib.request.Request(
+                str(url_o_ruta),
+                headers={"User-Agent": "Mozilla/5.0"}
+            )
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                raw = resp.read()
+            im = PILImage.open(io.BytesIO(raw))
+        im = im.convert("RGB")
+        im.thumbnail((180, 180))
+        tmp = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
+        im.save(tmp.name, format="JPEG", quality=85)
+        tmp.close()
+        return tmp.name
+    except Exception:
+        return None
+
 # Función para generar Nota de Pedido en PDF
 def generar_pdf_pedido(num_orden, fecha_str, cliente_info, carrito, total_pares, subtotal, envio, recargo_pp, total):
     pdf = FPDF()
@@ -608,26 +644,58 @@ def generar_pdf_pedido(num_orden, fecha_str, cliente_info, carrito, total_pares,
     pdf.cell(0, 6, limpiar_texto(f"Forma de Pago: {cliente_info['metodo_pago']}"), ln=True)
     pdf.ln(5)
     
-    # Tabla con 6 columnas (Ancho total = 190mm): Modelo, Color, Talla, Cant., P. Unit., Subtotal
-    pdf.set_font("Helvetica", "B", 9.5)
-    pdf.set_fill_color(235, 230, 222)
-    pdf.cell(56, 8, "Modelo", 1, 0, "L", True)
-    pdf.cell(34, 8, "Color", 1, 0, "C", True)
-    pdf.cell(16, 8, "Talla", 1, 0, "C", True)
-    pdf.cell(16, 8, "Cant.", 1, 0, "C", True)
-    pdf.cell(34, 8, "Precio Unit.", 1, 0, "R", True)
-    pdf.cell(34, 8, "Subtotal", 1, 1, "R", True)
+    # Tabla con 8 columnas (Ancho total = 190mm): Foto, Código, Modelo, Color, Talla, Cant., Precio Unit., Subtotal
+    def dibujar_encabezado_tabla():
+        pdf.set_font("Helvetica", "B", 8.5)
+        pdf.set_fill_color(235, 230, 222)
+        pdf.cell(22, 8, "Foto", 1, 0, "C", True)
+        pdf.cell(22, 8, "Codigo", 1, 0, "C", True)
+        pdf.cell(44, 8, "Modelo", 1, 0, "L", True)
+        pdf.cell(26, 8, "Color", 1, 0, "C", True)
+        pdf.cell(14, 8, "Talla", 1, 0, "C", True)
+        pdf.cell(14, 8, "Cant.", 1, 0, "C", True)
+        pdf.cell(24, 8, "Precio Unit.", 1, 0, "R", True)
+        pdf.cell(24, 8, "Subtotal", 1, 1, "R", True)
+
+    dibujar_encabezado_tabla()
     
-    pdf.set_font("Helvetica", "", 9.5)
+    row_h = 20
+    pdf.set_font("Helvetica", "", 8.5)
     for item in carrito:
+        if pdf.get_y() + row_h > 270:
+            pdf.add_page()
+            dibujar_encabezado_tabla()
+            pdf.set_font("Helvetica", "", 8.5)
+
         p_u = item["precio_may"] if total_pares >= item["min_may"] else item["precio_ofe"]
         sub_i = round(p_u * item["cantidad"], 2)
-        pdf.cell(56, 8, limpiar_texto(item["modelo"])[:25], 1, 0, "L")
-        pdf.cell(34, 8, limpiar_texto(item["color"])[:16], 1, 0, "C")
-        pdf.cell(16, 8, limpiar_texto(item["talla"]), 1, 0, "C")
-        pdf.cell(16, 8, str(item["cantidad"]), 1, 0, "C")
-        pdf.cell(34, 8, f"${p_u:.2f}", 1, 0, "R")
-        pdf.cell(34, 8, f"${sub_i:.2f}", 1, 1, "R")
+        cod_prod = formatear_codigo_producto(item.get("codigo", item.get("id_variante", "000")))
+
+        x_ini = pdf.get_x()
+        y_ini = pdf.get_y()
+
+        # Celda de foto
+        pdf.cell(22, row_h, "", 1, 0, "C")
+        ruta_img_tmp = descargar_imagen_para_pdf(item.get("imagen", ""))
+        if ruta_img_tmp:
+            try:
+                pdf.image(ruta_img_tmp, x=x_ini + 3, y=y_ini + 2, w=16, h=16)
+            except Exception:
+                pass
+            finally:
+                try:
+                    os.remove(ruta_img_tmp)
+                except Exception:
+                    pass
+
+        pdf.set_xy(x_ini + 22, y_ini)
+        pdf.cell(22, row_h, limpiar_texto(cod_prod)[:12], 1, 0, "C")
+        pdf.cell(44, row_h, limpiar_texto(item["modelo"])[:22], 1, 0, "L")
+        pdf.cell(26, row_h, limpiar_texto(item["color"])[:14], 1, 0, "C")
+        pdf.cell(14, row_h, limpiar_texto(item["talla"]), 1, 0, "C")
+        pdf.cell(14, row_h, str(item["cantidad"]), 1, 0, "C")
+        pdf.cell(24, row_h, f"${p_u:.2f}", 1, 0, "R")
+        pdf.cell(24, row_h, f"${sub_i:.2f}", 1, 1, "R")
         
     pdf.ln(4)
     pdf.set_font("Helvetica", "B", 11)
@@ -655,7 +723,8 @@ def generar_pdf_pedido(num_orden, fecha_str, cliente_info, carrito, total_pares,
     pdf.set_font("Helvetica", "I", 9)
     pdf.multi_cell(0, 5, limpiar_texto("Importante: Este documento respalda el detalle de tu pedido en Mary's Store EC. El despacho se realiza una vez confirmado el comprobante de pago en nuestro WhatsApp 0959276539."))
     
-    return bytes(pdf.output())
+    salida = pdf.output(dest="S")
+    return bytes(salida) if isinstance(salida, (bytes, bytearray)) else salida.encode("latin-1")
 
 # Conexión en vivo con Google Sheets
 SHEET_ID = "1LGRa-BfRkiRbyqukW0aWWpHJh2tKV_W-IgB0SRbx8N0"
@@ -824,10 +893,9 @@ if st.session_state.producto_seleccionado is not None:
         fila_base = variantes_prod.iloc[0]
         cat_prod = str(fila_base.get("Categoría", "Calzado")).strip()
         mat_prod = str(fila_base.get("Material", "Cuero / Sintético")).strip()
-        id_var = str(fila_base.get("ID_Variante", "001")).strip()
         
         st.markdown(f"<h2 style='margin-bottom:2px; color:#1A1A1A; font-family:Playfair Display, serif;'>{nombre_mod_sel}</h2>", unsafe_allow_html=True)
-        st.caption(f"Código: **MS-00{id_var}** | Categoría: **{cat_prod}** | Tienda: **Mary's Store EC**")
+        caption_codigo_placeholder = st.empty()
         
         colores_disponibles = list(variantes_prod["Color"].dropna().unique())
         idx_col = colores_disponibles.index(color_inicial) if (color_inicial in colores_disponibles) else 0
@@ -840,6 +908,8 @@ if st.session_state.producto_seleccionado is not None:
             
         filas_color_det = variantes_prod[variantes_prod["Color"] == color_sel_det]
         fila_activa = filas_color_det.iloc[0] if not filas_color_det.empty else fila_base
+        codigo_prod_det = formatear_codigo_producto(fila_activa.get("ID_Variante", "001"))
+        caption_codigo_placeholder.caption(f"Código: **{codigo_prod_det}** | Categoría: **{cat_prod}** | Tienda: **Mary's Store EC**")
         
         p_reg_d = limpiar_numero_float(fila_activa.get("Precio Regular ($)", 24.99), 24.99)
         p_ofe_d = limpiar_numero_float(fila_activa.get("Precio Oferta ($)", 19.99), 19.99)
@@ -882,6 +952,7 @@ if st.session_state.producto_seleccionado is not None:
             with cd2:
                 if st.button("🛒 AÑADIR AL CARRITO", type="primary", use_container_width=True, key="det_add_btn"):
                     st.session_state.carrito.append({
+                        "codigo": codigo_prod_det,
                         "modelo": nombre_mod_sel,
                         "categoria": cat_prod,
                         "color": str(color_sel_det),
@@ -904,7 +975,7 @@ if st.session_state.producto_seleccionado is not None:
         msg_consulta_prod = (
             f"¡Hola *Mary's Store EC*! 👋\n"
             f"Tengo una consulta sobre este artículo de su tienda online:\n\n"
-            f"• *Modelo:* {nombre_mod_sel} (Cód: MS-00{id_var})\n"
+            f"• *Modelo:* {nombre_mod_sel} (Cód: {codigo_prod_det})\n"
             f"• *Categoría:* {cat_prod}\n"
             f"• *Color:* {color_sel_det}\n"
             f"• *Talla de interés:* {talla_sel_det}\n"
@@ -1143,7 +1214,9 @@ elif st.session_state.vista_actual in ["DETAL", "MAYORISTA"]:
                                 )
                             with c_btn:
                                 if st.button("🛒 Agregar", key=f"btn_{nombre_modelo}_{idx}", use_container_width=True, type="primary"):
+                                    codigo_prod_grid = formatear_codigo_producto(fila_color.get("ID_Variante", "001"))
                                     st.session_state.carrito.append({
+                                        "codigo": codigo_prod_grid,
                                         "modelo": nombre_modelo,
                                         "categoria": categoria_mod,
                                         "color": str(color_elegido),
