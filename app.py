@@ -4,7 +4,13 @@ import urllib.parse
 import re
 import os
 import random
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+# Zona horaria oficial de Ecuador (America/Guayaquil, UTC-5)
+ECUADOR_TZ = timezone(timedelta(hours=-5))
+
+def ahora_ecuador():
+    return datetime.now(ECUADOR_TZ)
 from fpdf import FPDF
 import urllib.request
 import json
@@ -783,7 +789,7 @@ if st.session_state.producto_seleccionado is not None:
         with sc1:
             color_sel_det = st.selectbox("🎨 COLOR *", colores_disponibles, index=idx_col, key="det_color_sel")
         with sc2:
-            talla_sel_det = st.selectbox("📏 TALLA *", ["34", "35", "36", "37", "38", "39", "40"], index=2, key="det_talla_sel")
+            talla_sel_det = st.selectbox("📏 TALLA *", ["34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44"], index=2, key="det_talla_sel")
             
         filas_color_det = variantes_prod[variantes_prod["Color"] == color_sel_det]
         fila_activa = filas_color_det.iloc[0] if not filas_color_det.empty else fila_base
@@ -872,7 +878,7 @@ if st.session_state.producto_seleccionado is not None:
         - **Modelo:** {nombre_mod_sel}
         - **Color seleccionado:** {color_sel_det}
         - **Material:** {mat_prod} de alta durabilidad y confort
-        - **Tallas disponibles:** Horma nacional (34 al 40)
+        - **Tallas disponibles:** Horma nacional (34 al 44)
         - **Envíos:** A todo el Ecuador por Servientrega o Cooperativa de Transporte.
         """)
         
@@ -887,6 +893,10 @@ if st.session_state.producto_seleccionado is not None:
             | **38** | 24.1 - 24.5 cm | 7.5 |
             | **39** | 24.6 - 25.5 cm | 8.0 - 8.5 |
             | **40** | 25.6 - 26.0 cm | 9.0 |
+            | **41** | 26.1 - 26.5 cm | 9.5 |
+            | **42** | 26.6 - 27.0 cm | 10.0 |
+            | **43** | 27.1 - 27.8 cm | 10.5 - 11.0 |
+            | **44** | 27.9 - 28.5 cm | 11.5 - 12.0 |
             """)
 
     with col_foto_grande:
@@ -938,7 +948,7 @@ elif st.session_state.vista_actual in ["DETAL", "MAYORISTA"]:
                 st.rerun()
 
         with st.expander("TALLA DISPONIBLE", expanded=True):
-            talla_filtro = st.selectbox("Ver stock en talla:", ["Todas las tallas", "34", "35", "36", "37", "38", "39", "40"], label_visibility="collapsed")
+            talla_filtro = st.selectbox("Ver stock en talla:", ["Todas las tallas", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44"], label_visibility="collapsed")
 
         with st.expander("COLOR", expanded=False):
             colores_unicos = ["Todos"] + sorted([str(c).strip() for c in df_inv["Color"].dropna().unique() if str(c).strip()])
@@ -1016,7 +1026,7 @@ elif st.session_state.vista_actual in ["DETAL", "MAYORISTA"]:
                                 key=f"color_{nombre_modelo}_{idx}"
                             )
                         with sel_c2:
-                            tallas_lista = ["34", "35", "36", "37", "38", "39", "40"]
+                            tallas_lista = ["34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44"]
                             idx_talla_def = tallas_lista.index(talla_filtro) if talla_filtro in tallas_lista else 2
                             talla_elegida = st.selectbox(
                                 "📏 Talla",
@@ -1255,8 +1265,8 @@ elif st.session_state.vista_actual == "CARRITO":
                     total_pagar = round(subtotal_general + envio_final + recargo_payphone, 2)
                     puntos_ganados = int(total_pares_carrito * 10)
                     
-                    fecha_actual_str = datetime.now().strftime("%d/%m/%Y %H:%M")
-                    num_orden_unico = f"ORD-{datetime.now().strftime('%m%d')}-{random.randint(1000, 9999)}"
+                    fecha_actual_str = ahora_ecuador().strftime("%d/%m/%Y %H:%M")
+                    num_orden_unico = f"ORD-{ahora_ecuador().strftime('%m%d')}-{random.randint(1000, 9999)}"
                     
                     lineas_productos = []
                     carrito_copia = []
@@ -1280,10 +1290,17 @@ elif st.session_state.vista_actual == "CARRITO":
                     )
                     
                     # Enviar automáticamente la orden y el cliente al Google Sheet en estado PENDIENTE
-                    items_para_stock = [
-                        {"modelo": it["modelo"], "color": it["color"], "talla": it["talla"], "cantidad": it["cantidad"]}
-                        for it in carrito_copia
-                    ]
+                    items_para_stock = []
+                    for it in carrito_copia:
+                        p_u_env = it["precio_may"] if total_pares_carrito >= it["min_may"] else it["precio_ofe"]
+                        items_para_stock.append({
+                            "modelo": it["modelo"],
+                            "color": it["color"],
+                            "talla": it["talla"],
+                            "cantidad": it["cantidad"],
+                            "precio_unitario": round(float(p_u_env), 2),
+                            "subtotal": round(float(p_u_env) * int(it["cantidad"]), 2)
+                        })
                     enviar_a_google_sheet({
                         "accion": "nuevo_pedido",
                         "num_orden": num_orden_unico,
@@ -1664,7 +1681,7 @@ elif st.session_state.vista_actual == "INFO":
 st.markdown(f"""
 <div class="store-footer">
     <div class="footer-copy">
-        © {datetime.now().year} <strong>Mary's Store EC</strong> • Envíos a todo el Ecuador
+        © {ahora_ecuador().year} <strong>Mary's Store EC</strong> • Envíos a todo el Ecuador
     </div>
     <div class="footer-socials">
         <a href="{URL_FACEBOOK}" target="_blank" class="footer-link"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg> Facebook</a>
