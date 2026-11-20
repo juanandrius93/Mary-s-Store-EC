@@ -448,6 +448,8 @@ if "orden_confirmada" not in st.session_state:
     st.session_state.orden_confirmada = None
 if "cliente_autocompletado" not in st.session_state:
     st.session_state.cliente_autocompletado = {}
+if "registro_autocompletado" not in st.session_state:
+    st.session_state.registro_autocompletado = {}
 
 # Diccionario completo de Provincias y Cantones del Ecuador
 PROVINCIAS_CANTONES_EC = {
@@ -496,6 +498,27 @@ def limpiar_numero_float(valor, por_defecto=0.0):
 
 def limpiar_numero_int(valor, por_defecto=0):
     return int(round(limpiar_numero_float(valor, por_defecto)))
+
+def limpiar_texto_campo(valor):
+    if valor is None or pd.isna(valor):
+        return ""
+    s = str(valor).strip()
+    if s.lower() in ("nan", "none"):
+        return ""
+    if s.startswith("'"):
+        s = s[1:]
+    if s.endswith(".0") and s[:-2].isdigit():
+        s = s[:-2]
+    return s
+
+def normalizar_id(valor):
+    s = limpiar_texto_campo(valor)
+    if not s:
+        return ""
+    solo_digitos = "".join(ch for ch in s if ch.isdigit())
+    if len(solo_digitos) == 9:
+        solo_digitos = "0" + solo_digitos
+    return solo_digitos if solo_digitos else s
 
 def preparar_url_imagen(url):
     if pd.isna(url) or not str(url).strip():
@@ -589,9 +612,12 @@ URL_ENV = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:cs
 URL_PED = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Ventas_Historial"
 
 @st.cache_data(ttl=15)
-def cargar_sheet(url):
+def cargar_sheet(url, como_texto=False):
     try:
-        df = pd.read_csv(url)
+        if como_texto:
+            df = pd.read_csv(url, dtype=str, keep_default_na=False)
+        else:
+            df = pd.read_csv(url)
         df.columns = df.columns.str.strip()
         return df
     except Exception:
@@ -611,8 +637,8 @@ if "En Oferta" not in df_inv.columns:
     df_inv["En Oferta"] = "Si"
 
 df_envios = cargar_sheet(URL_ENV)
-df_cli = cargar_sheet(URL_CLI)
-df_ped = cargar_sheet(URL_PED)
+df_cli = cargar_sheet(URL_CLI, como_texto=True)
+df_ped = cargar_sheet(URL_PED, como_texto=True)
 
 total_items_carrito = sum(item["cantidad"] for item in st.session_state.carrito)
 
@@ -1141,25 +1167,26 @@ elif st.session_state.vista_actual == "CARRITO":
                 ced_buscar = st.text_input("🪪 ¿Ya has comprado antes? Ingresa tu Cédula para autocompletar tus datos:", placeholder="Ej: 1204567890")
             with c_busq2:
                 if st.button("🔍 Buscar Cédula", use_container_width=True):
-                    if ced_buscar and not df_cli.empty and "Cédula" in df_cli.columns:
-                        coincidencia = df_cli[df_cli["Cédula"].astype(str).str.strip() == str(ced_buscar).strip()]
+                    ced_norm_b = normalizar_id(ced_buscar)
+                    if ced_norm_b and not df_cli.empty and "Cédula" in df_cli.columns:
+                        coincidencia = df_cli[df_cli["Cédula"].apply(normalizar_id) == ced_norm_b]
                         if not coincidencia.empty:
                             fila_c = coincidencia.iloc[0]
-                            nom_comp = str(fila_c.get("Nombres y Apellidos", "")).strip()
+                            nom_comp = limpiar_texto_campo(fila_c.get("Nombres y Apellidos", ""))
                             partes = nom_comp.split(" ", 1)
                             st.session_state.cliente_autocompletado = {
-                                "cedula": str(ced_buscar).strip(),
+                                "cedula": ced_norm_b,
                                 "nombres": partes[0] if len(partes) > 0 else "",
                                 "apellidos": partes[1] if len(partes) > 1 else "",
-                                "celular": str(fila_c.get("Celular", "")),
-                                "provincia": str(fila_c.get("Provincia", "Los Ríos")),
-                                "canton": str(fila_c.get("Cantón", "Babahoyo")),
-                                "direccion": str(fila_c.get("Dirección", fila_c.get("Dirección y Ciudad", "")))
+                                "celular": normalizar_id(fila_c.get("Celular", "")),
+                                "provincia": limpiar_texto_campo(fila_c.get("Provincia", "Los Ríos")) or "Los Ríos",
+                                "canton": limpiar_texto_campo(fila_c.get("Cantón", "Babahoyo")) or "Babahoyo",
+                                "direccion": limpiar_texto_campo(fila_c.get("Dirección", fila_c.get("Dirección y Ciudad", "")))
                             }
-                            st.success(f"✅ ¡Datos recuperados! Puntos acumulados: {fila_c.get('Puntos Fidelidad', 0)} pts.")
+                            st.success(f"✅ ¡Datos recuperados! Puntos acumulados: {limpiar_numero_int(fila_c.get('Puntos Fidelidad', 0), 0)} pts.")
                         else:
                             st.info("Cédula nueva. Completa tus datos abajo para registrarte.")
-                            st.session_state.cliente_autocompletado = {"cedula": str(ced_buscar).strip()}
+                            st.session_state.cliente_autocompletado = {"cedula": ced_norm_b}
 
             ca = st.session_state.cliente_autocompletado
             
@@ -1261,9 +1288,9 @@ elif st.session_state.vista_actual == "CARRITO":
                         "accion": "nuevo_pedido",
                         "num_orden": num_orden_unico,
                         "fecha": fecha_actual_str,
-                        "cedula": cedula,
+                        "cedula": normalizar_id(cedula),
                         "cliente": f"{nombres} {apellidos}".strip(),
-                        "celular": celular,
+                        "celular": normalizar_id(celular),
                         "provincia": provincia_elegida,
                         "canton": canton_elegido,
                         "direccion": direccion,
@@ -1278,6 +1305,7 @@ elif st.session_state.vista_actual == "CARRITO":
                         "metodo_pago": metodo_pago,
                         "guardar_fidelidad": guardar_fidelidad
                     })
+                    st.cache_data.clear()
 
                     st.session_state.orden_confirmada = {
                         "num_orden": num_orden_unico,
@@ -1436,14 +1464,25 @@ elif st.session_state.vista_actual == "LOGIN":
     
     if st.session_state.usuario_logueado is not None:
         u = st.session_state.usuario_logueado
-        st.success(f"👋 ¡Bienvenido/a de nuevo, **{u['nombres']}**! (Cédula: {u['cedula']})")
+        ced_u_norm = normalizar_id(u["cedula"])
+        
+        # Refrescar puntos y pares en vivo desde el Sheet
+        puntos_actuales = u.get("puntos", 0)
+        pares_actuales = u.get("pares", 0)
+        if not df_cli.empty and "Cédula" in df_cli.columns:
+            m_act = df_cli[df_cli["Cédula"].apply(normalizar_id) == ced_u_norm]
+            if not m_act.empty:
+                puntos_actuales = limpiar_numero_int(m_act.iloc[0].get("Puntos Fidelidad", puntos_actuales), puntos_actuales)
+                pares_actuales = limpiar_numero_int(m_act.iloc[0].get("Pares Acumulados", pares_actuales), pares_actuales)
+
+        st.success(f"👋 ¡Bienvenido/a de nuevo, **{u['nombres']}**! (Cédula: {ced_u_norm})")
         
         c_p1, c_p2 = st.columns([1, 2], gap="large")
         with c_p1:
             with st.container(border=True):
                 st.subheader("⭐ Tu Club de Fidelidad")
-                st.metric("Puntos Acumulados", f"{u['puntos']} Puntos")
-                st.metric("Pares Comprados", f"{u['pares']} Pares")
+                st.metric("Puntos Acumulados", f"{puntos_actuales} Puntos")
+                st.metric("Pares Comprados", f"{pares_actuales} Pares")
                 st.info("🎁 **Meta 50 Puntos (5 pares):** Ganas un **Envío Gratis** o acceso a **Promoción 2x1** coordinando directamente por nuestro WhatsApp 0959276539.")
                 if st.button("🔒 Cerrar Sesión", use_container_width=True):
                     st.session_state.usuario_logueado = None
@@ -1452,9 +1491,10 @@ elif st.session_state.vista_actual == "LOGIN":
             with st.container(border=True):
                 st.subheader("📦 Mi Historial de Pedidos")
                 if not df_ped.empty and "Cédula Cliente" in df_ped.columns:
-                    mis_pedidos = df_ped[df_ped["Cédula Cliente"].astype(str).str.strip() == str(u["cedula"]).strip()]
+                    mis_pedidos = df_ped[df_ped["Cédula Cliente"].apply(normalizar_id) == ced_u_norm].copy()
                     if not mis_pedidos.empty:
-                        st.dataframe(mis_pedidos, use_container_width=True)
+                        cols_visibles = [c for c in mis_pedidos.columns if c != "Items_JSON"]
+                        st.dataframe(mis_pedidos[cols_visibles], use_container_width=True, hide_index=True)
                     else:
                         st.info("Aún no tienes pedidos registrados con tu cédula en el historial.")
                 else:
@@ -1470,19 +1510,34 @@ elif st.session_state.vista_actual == "LOGIN":
                     pas_l = st.text_input("🔒 Contraseña *", type="password")
                     btn_ingresar = st.form_submit_button("Ingresar a Mi Cuenta", type="primary", use_container_width=True)
                 if btn_ingresar:
-                    if not ced_l:
-                        st.error("Ingresa tu número de cédula.")
+                    ced_l_norm = normalizar_id(ced_l)
+                    cor_l_clean = limpiar_texto_campo(cor_l).lower()
+                    pas_l_clean = limpiar_texto_campo(pas_l)
+                    
+                    if not (ced_l_norm and cor_l_clean and pas_l_clean):
+                        st.error("⚠️ Ingresa tu cédula, correo y contraseña para iniciar sesión.")
                     elif not df_cli.empty and "Cédula" in df_cli.columns:
-                        m_cli = df_cli[df_cli["Cédula"].astype(str).str.strip() == str(ced_l).strip()]
+                        m_cli = df_cli[df_cli["Cédula"].apply(normalizar_id) == ced_l_norm]
                         if not m_cli.empty:
                             fila_u = m_cli.iloc[0]
-                            st.session_state.usuario_logueado = {
-                                "cedula": str(ced_l).strip(),
-                                "nombres": str(fila_u.get("Nombres y Apellidos", "Cliente VIP")),
-                                "puntos": limpiar_numero_int(fila_u.get("Puntos Fidelidad", 0), 0),
-                                "pares": limpiar_numero_int(fila_u.get("Pares Acumulados", 0), 0)
-                            }
-                            st.rerun()
+                            pass_guardada = limpiar_texto_campo(fila_u.get("Contraseña", ""))
+                            correo_guardado = limpiar_texto_campo(fila_u.get("Correo", "")).lower()
+                            
+                            if not pass_guardada:
+                                st.warning(
+                                    "🔎 Encontramos tu cédula registrada de una compra anterior, pero aún no has creado una contraseña. "
+                                    "Completa tus datos en **'Crear Cuenta'** (a la derecha) con esta misma cédula para activar tu acceso y ver tu historial completo."
+                                )
+                            elif pas_l_clean != pass_guardada or (correo_guardado and cor_l_clean != correo_guardado):
+                                st.error("❌ El correo electrónico o la contraseña no coinciden con los registrados para esta cédula.")
+                            else:
+                                st.session_state.usuario_logueado = {
+                                    "cedula": ced_l_norm,
+                                    "nombres": limpiar_texto_campo(fila_u.get("Nombres y Apellidos", "Cliente VIP")) or "Cliente VIP",
+                                    "puntos": limpiar_numero_int(fila_u.get("Puntos Fidelidad", 0), 0),
+                                    "pares": limpiar_numero_int(fila_u.get("Pares Acumulados", 0), 0)
+                                }
+                                st.rerun()
                         else:
                             st.warning("No encontramos esa cédula en el Club de Fidelidad. Crea tu cuenta a la derecha.")
                     else:
@@ -1491,36 +1546,85 @@ elif st.session_state.vista_actual == "LOGIN":
         with col_reg:
             with st.container(border=True):
                 st.subheader("📝 Crear Cuenta en el Club de Fidelidad")
+                st.caption("¿Ya guardaste tus datos en una compra anterior? Verifica tu cédula para recuperar tu historial y puntos.")
+                
+                rc1, rc2 = st.columns([2.2, 1.2], vertical_alignment="bottom")
+                with rc1:
+                    ced_check_reg = st.text_input("🔍 Verificar Cédula previa (opcional):", placeholder="Ej: 0951241900", key="ced_check_reg_input")
+                with rc2:
+                    if st.button("Buscar datos", use_container_width=True, key="btn_check_reg"):
+                        ced_chk_norm = normalizar_id(ced_check_reg)
+                        if ced_chk_norm and not df_cli.empty and "Cédula" in df_cli.columns:
+                            m_prev = df_cli[df_cli["Cédula"].apply(normalizar_id) == ced_chk_norm]
+                            if not m_prev.empty:
+                                fp = m_prev.iloc[0]
+                                if limpiar_texto_campo(fp.get("Contraseña", "")):
+                                    st.warning("Esta cédula ya tiene una cuenta activa con contraseña. Inicia sesión en el panel izquierdo.")
+                                else:
+                                    pts_prev = limpiar_numero_int(fp.get("Puntos Fidelidad", 0), 0)
+                                    st.session_state.registro_autocompletado = {
+                                        "cedula": ced_chk_norm,
+                                        "nombres": limpiar_texto_campo(fp.get("Nombres y Apellidos", "")),
+                                        "celular": normalizar_id(fp.get("Celular", "")),
+                                        "correo": limpiar_texto_campo(fp.get("Correo", ""))
+                                    }
+                                    st.success(f"✅ ¡Encontramos tu registro previo ({pts_prev} pts)! Solo completa tu correo y crea tu contraseña abajo.")
+                            else:
+                                st.info("Cédula nueva. Completa tus datos en el formulario de abajo.")
+                                st.session_state.registro_autocompletado = {"cedula": ced_chk_norm}
+
+                ra = st.session_state.registro_autocompletado
                 with st.form("form_registro_cliente"):
-                    ced_r = st.text_input("🪪 Número de Cédula (ID Único) *")
-                    nom_r = st.text_input("👤 Nombres y Apellidos *")
-                    cel_r = st.text_input("📱 Celular (WhatsApp) *")
-                    cor_r = st.text_input("📧 Correo Electrónico *")
+                    ced_r = st.text_input("🪪 Número de Cédula (ID Único) *", value=ra.get("cedula", ""))
+                    nom_r = st.text_input("👤 Nombres y Apellidos *", value=ra.get("nombres", ""))
+                    cel_r = st.text_input("📱 Celular (WhatsApp) *", value=ra.get("celular", ""))
+                    cor_r = st.text_input("📧 Correo Electrónico *", value=ra.get("correo", ""))
                     pas_r = st.text_input("🔒 Crear Contraseña *", type="password")
                     acepta_datos = st.checkbox("✅ Acepto el uso y tratamiento de mis datos personales para la gestión de pedidos y el Programa de Fidelidad de Mary's Store EC.")
                     btn_reg = st.form_submit_button("Crear mi Cuenta", type="primary", use_container_width=True)
                 if btn_reg:
-                    if not (ced_r and nom_r and cel_r and cor_r and pas_r):
+                    ced_r_norm = normalizar_id(ced_r)
+                    cel_r_norm = normalizar_id(cel_r)
+                    if not (ced_r_norm and nom_r and cel_r_norm and cor_r and pas_r):
                         st.error("⚠️ Completa todos los campos obligatorios.")
                     elif not acepta_datos:
                         st.error("⚠️ Debes aceptar el uso y manejo de datos personales para crear tu cuenta.")
                     else:
-                        enviar_a_google_sheet({
-                            "accion": "registro_cliente",
-                            "cedula": str(ced_r).strip(),
-                            "nombres": str(nom_r).strip(),
-                            "celular": str(cel_r).strip(),
-                            "correo": str(cor_r).strip(),
-                            "password": str(pas_r).strip()
-                        })
-                        st.session_state.usuario_logueado = {
-                            "cedula": str(ced_r).strip(),
-                            "nombres": str(nom_r).strip(),
-                            "puntos": 0,
-                            "pares": 0
-                        }
-                        st.success("🎉 ¡Cuenta creada con éxito! Ya has iniciado sesión.")
-                        st.rerun()
+                        # Verificar si la cédula ya existía (de compras anteriores) para enlazar su trazabilidad sin duplicar
+                        puntos_previos = 0
+                        pares_previos = 0
+                        ya_tiene_cuenta = False
+                        if not df_cli.empty and "Cédula" in df_cli.columns:
+                            m_exist = df_cli[df_cli["Cédula"].apply(normalizar_id) == ced_r_norm]
+                            if not m_exist.empty:
+                                fila_ex = m_exist.iloc[0]
+                                if limpiar_texto_campo(fila_ex.get("Contraseña", "")):
+                                    ya_tiene_cuenta = True
+                                else:
+                                    puntos_previos = limpiar_numero_int(fila_ex.get("Puntos Fidelidad", 0), 0)
+                                    pares_previos = limpiar_numero_int(fila_ex.get("Pares Acumulados", 0), 0)
+
+                        if ya_tiene_cuenta:
+                            st.error("⚠️ Esta cédula ya tiene una cuenta registrada. Por favor inicia sesión en el panel de la izquierda.")
+                        else:
+                            enviar_a_google_sheet({
+                                "accion": "registro_cliente",
+                                "cedula": ced_r_norm,
+                                "nombres": str(nom_r).strip(),
+                                "celular": cel_r_norm,
+                                "correo": str(cor_r).strip(),
+                                "password": str(pas_r).strip()
+                            })
+                            st.cache_data.clear()
+                            st.session_state.registro_autocompletado = {}
+                            st.session_state.usuario_logueado = {
+                                "cedula": ced_r_norm,
+                                "nombres": str(nom_r).strip(),
+                                "puntos": puntos_previos,
+                                "pares": pares_previos
+                            }
+                            st.success("🎉 ¡Cuenta activada con éxito! Ya puedes ver tus puntos y todo tu historial de pedidos.")
+                            st.rerun()
 
 # ==============================================================================
 # VISTA 5: INFORMACIÓN DE PAGOS, ENVÍOS Y PROGRAMA DE FIDELIDAD
