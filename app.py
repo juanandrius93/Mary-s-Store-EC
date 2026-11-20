@@ -38,6 +38,20 @@ def obtener_ruta_logo():
             return ruta, mime
     return None, None
 
+def obtener_ruta_logo_pdf():
+    candidatos_pdf = [
+        "logo_marys_vertical (Sin fondo).png",
+        "logo_marys_vertical.png",
+        "logo_marys_vertical.jpg",
+        "logo_marys_horizontal.png",
+        "logo_marys_horizontal.jpg",
+        "logo_marys_ec.png",
+    ]
+    for ruta in candidatos_pdf:
+        if os.path.exists(ruta):
+            return ruta
+    return None
+
 def obtener_logo_base64():
     ruta, mime = obtener_ruta_logo()
     if ruta:
@@ -549,13 +563,25 @@ def generar_pdf_pedido(num_orden, fecha_str, cliente_info, carrito, total_pares,
     pdf = FPDF()
     pdf.add_page()
     
-    # Insertar logotipo oficial centrado si existe en el repositorio
-    ruta_logo, _ = obtener_ruta_logo()
+    # Insertar logotipo vertical sin fondo centrado (sin superposición de texto)
+    ruta_logo_pdf = obtener_ruta_logo_pdf()
     logo_insertado = False
-    if ruta_logo:
+    if ruta_logo_pdf:
         try:
-            pdf.image(ruta_logo, x=70, y=10, w=70)
-            pdf.set_y(36)
+            ancho_logo = 58
+            x_centrado = (210 - ancho_logo) / 2
+            y_inicio = 10
+            altura_logo = 48
+            try:
+                from PIL import Image as PILImage
+                with PILImage.open(ruta_logo_pdf) as im_tmp:
+                    w_px, h_px = im_tmp.size
+                    if w_px > 0:
+                        altura_logo = ancho_logo * (h_px / w_px)
+            except Exception:
+                altura_logo = 48
+            pdf.image(ruta_logo_pdf, x=x_centrado, y=y_inicio, w=ancho_logo)
+            pdf.set_y(y_inicio + altura_logo + 6)
             logo_insertado = True
         except Exception:
             logo_insertado = False
@@ -563,9 +589,9 @@ def generar_pdf_pedido(num_orden, fecha_str, cliente_info, carrito, total_pares,
     if not logo_insertado:
         pdf.set_font("Helvetica", "B", 16)
         pdf.cell(0, 10, "MARY'S STORE EC", ln=True, align="C")
-    pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 6, "Tienda Online Oficial | WhatsApp: 0959276539", ln=True, align="C")
-    pdf.ln(5)
+        pdf.set_font("Helvetica", "", 10)
+        pdf.cell(0, 6, "Tienda Online Oficial | WhatsApp: 0959276539", ln=True, align="C")
+        pdf.ln(5)
     
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, f"NOTA DE PEDIDO: #{num_orden}  |  Fecha: {fecha_str}", ln=True)
@@ -1531,8 +1557,37 @@ elif st.session_state.vista_actual == "LOGIN":
                 if not df_ped.empty and "Cédula Cliente" in df_ped.columns:
                     mis_pedidos = df_ped[df_ped["Cédula Cliente"].apply(normalizar_id) == ced_u_norm].copy()
                     if not mis_pedidos.empty:
-                        cols_visibles = [c for c in mis_pedidos.columns if c != "Items_JSON"]
-                        st.dataframe(mis_pedidos[cols_visibles], use_container_width=True, hide_index=True)
+                        renombres_hist = {}
+                        if "Confirmación de Venta" in mis_pedidos.columns:
+                            renombres_hist["Confirmación de Venta"] = "Confirmación de Pago"
+                        if "Número de Guía" in mis_pedidos.columns and "Número Guía" not in mis_pedidos.columns:
+                            renombres_hist["Número de Guía"] = "Número Guía"
+                        if renombres_hist:
+                            mis_pedidos = mis_pedidos.rename(columns=renombres_hist)
+
+                        orden_columnas_hist = [
+                            "Fecha",
+                            "Código Pedido",
+                            "Confirmación de Pago",
+                            "Estatus Pedido",
+                            "Número Guía",
+                            "Detalle Artículos",
+                            "Total Pares",
+                            "Subtotal Calzado",
+                            "Costo Envío",
+                            "Comisión PayPhone",
+                            "Total Final",
+                            "Método Pago",
+                            "Celular",
+                            "Provincia",
+                            "Cantón",
+                            "Dirección",
+                            "Courier"
+                        ]
+                        for col_req in orden_columnas_hist:
+                            if col_req not in mis_pedidos.columns:
+                                mis_pedidos[col_req] = ""
+                        st.dataframe(mis_pedidos[orden_columnas_hist], use_container_width=True, hide_index=True)
                     else:
                         st.info("Aún no tienes pedidos registrados con tu cédula en el historial.")
                 else:
