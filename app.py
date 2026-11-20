@@ -24,7 +24,7 @@ URL_FACEBOOK = "https://www.facebook.com/share/1CN5wrLMTH/?mibextid=wwXIfr"
 URL_INSTAGRAM = "https://www.instagram.com/babayork_urban?dmpr=MWp6ejF2emtwcWVweA=="
 WHATSAPP_NUMERO = "593959276539"
 
-def obtener_logo_base64():
+def obtener_ruta_logo():
     candidatos = [
         ("logo_marys_horizontal.png", "image/png"),
         ("logo_marys_horizontal.jpg", "image/jpeg"),
@@ -35,8 +35,14 @@ def obtener_logo_base64():
     ]
     for ruta, mime in candidatos:
         if os.path.exists(ruta):
-            with open(ruta, "rb") as img_f:
-                return mime, base64.b64encode(img_f.read()).decode("utf-8")
+            return ruta, mime
+    return None, None
+
+def obtener_logo_base64():
+    ruta, mime = obtener_ruta_logo()
+    if ruta:
+        with open(ruta, "rb") as img_f:
+            return mime, base64.b64encode(img_f.read()).decode("utf-8")
     return None, None
 
 def enviar_a_google_sheet(payload):
@@ -49,7 +55,7 @@ def enviar_a_google_sheet(payload):
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=8) as resp:
+        with urllib.request.urlopen(req, timeout=15) as resp:
             return resp.status == 200
     except Exception:
         return False
@@ -543,8 +549,20 @@ def generar_pdf_pedido(num_orden, fecha_str, cliente_info, carrito, total_pares,
     pdf = FPDF()
     pdf.add_page()
     
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "MARY'S STORE EC", ln=True, align="C")
+    # Insertar logotipo oficial centrado si existe en el repositorio
+    ruta_logo, _ = obtener_ruta_logo()
+    logo_insertado = False
+    if ruta_logo:
+        try:
+            pdf.image(ruta_logo, x=70, y=10, w=70)
+            pdf.set_y(36)
+            logo_insertado = True
+        except Exception:
+            logo_insertado = False
+            
+    if not logo_insertado:
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(0, 10, "MARY'S STORE EC", ln=True, align="C")
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(0, 6, "Tienda Online Oficial | WhatsApp: 0959276539", ln=True, align="C")
     pdf.ln(5)
@@ -564,36 +582,39 @@ def generar_pdf_pedido(num_orden, fecha_str, cliente_info, carrito, total_pares,
     pdf.cell(0, 6, limpiar_texto(f"Forma de Pago: {cliente_info['metodo_pago']}"), ln=True)
     pdf.ln(5)
     
-    pdf.set_font("Helvetica", "B", 10)
+    # Tabla con 6 columnas (Ancho total = 190mm): Modelo, Color, Talla, Cant., P. Unit., Subtotal
+    pdf.set_font("Helvetica", "B", 9.5)
     pdf.set_fill_color(235, 230, 222)
-    pdf.cell(65, 8, "Modelo", 1, 0, "L", True)
-    pdf.cell(45, 8, "Color", 1, 0, "C", True)
-    pdf.cell(20, 8, "Talla", 1, 0, "C", True)
-    pdf.cell(20, 8, "Cant.", 1, 0, "C", True)
-    pdf.cell(40, 8, "Subtotal", 1, 1, "R", True)
+    pdf.cell(56, 8, "Modelo", 1, 0, "L", True)
+    pdf.cell(34, 8, "Color", 1, 0, "C", True)
+    pdf.cell(16, 8, "Talla", 1, 0, "C", True)
+    pdf.cell(16, 8, "Cant.", 1, 0, "C", True)
+    pdf.cell(34, 8, "Precio Unit.", 1, 0, "R", True)
+    pdf.cell(34, 8, "Subtotal", 1, 1, "R", True)
     
-    pdf.set_font("Helvetica", "", 10)
+    pdf.set_font("Helvetica", "", 9.5)
     for item in carrito:
         p_u = item["precio_may"] if total_pares >= item["min_may"] else item["precio_ofe"]
         sub_i = round(p_u * item["cantidad"], 2)
-        pdf.cell(65, 8, limpiar_texto(item["modelo"])[:28], 1, 0, "L")
-        pdf.cell(45, 8, limpiar_texto(item["color"])[:20], 1, 0, "C")
-        pdf.cell(20, 8, limpiar_texto(item["talla"]), 1, 0, "C")
-        pdf.cell(20, 8, str(item["cantidad"]), 1, 0, "C")
-        pdf.cell(40, 8, f"${sub_i:.2f}", 1, 1, "R")
+        pdf.cell(56, 8, limpiar_texto(item["modelo"])[:25], 1, 0, "L")
+        pdf.cell(34, 8, limpiar_texto(item["color"])[:16], 1, 0, "C")
+        pdf.cell(16, 8, limpiar_texto(item["talla"]), 1, 0, "C")
+        pdf.cell(16, 8, str(item["cantidad"]), 1, 0, "C")
+        pdf.cell(34, 8, f"${p_u:.2f}", 1, 0, "R")
+        pdf.cell(34, 8, f"${sub_i:.2f}", 1, 1, "R")
         
     pdf.ln(4)
     pdf.set_font("Helvetica", "B", 11)
-    pdf.cell(150, 7, "Subtotal:", 0, 0, "R")
-    pdf.cell(40, 7, f"${subtotal:.2f}", 0, 1, "R")
-    pdf.cell(150, 7, "Costo de Envio:", 0, 0, "R")
-    pdf.cell(40, 7, f"${envio:.2f}", 0, 1, "R")
+    pdf.cell(156, 7, "Subtotal:", 0, 0, "R")
+    pdf.cell(34, 7, f"${subtotal:.2f}", 0, 1, "R")
+    pdf.cell(156, 7, "Costo de Envio:", 0, 0, "R")
+    pdf.cell(34, 7, f"${envio:.2f}", 0, 1, "R")
     if recargo_pp > 0:
-        pdf.cell(150, 7, "Comision Pasarela Tarjeta (6%):", 0, 0, "R")
-        pdf.cell(40, 7, f"${recargo_pp:.2f}", 0, 1, "R")
+        pdf.cell(156, 7, "Comision Pasarela Tarjeta (6%):", 0, 0, "R")
+        pdf.cell(34, 7, f"${recargo_pp:.2f}", 0, 1, "R")
     pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(150, 9, "TOTAL A PAGAR:", 0, 0, "R")
-    pdf.cell(40, 9, f"${total:.2f}", 0, 1, "R")
+    pdf.cell(156, 9, "TOTAL A PAGAR:", 0, 0, "R")
+    pdf.cell(34, 9, f"${total:.2f}", 0, 1, "R")
     
     if "Transferencia" in cliente_info.get("metodo_pago", ""):
         pdf.ln(5)
