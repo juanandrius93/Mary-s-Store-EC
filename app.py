@@ -8,6 +8,7 @@ from datetime import datetime
 from fpdf import FPDF
 import urllib.request
 import json
+import base64
 
 # URL de tu Google Apps Script conectada directamente
 GOOGLE_SCRIPT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxC43z42rdBydVWuyihHfr4qR8AyZ4_mIaD3sYyAGdh67-dAVc6LUGu6vzgIZHIf57Ldg/exec"
@@ -16,6 +17,21 @@ GOOGLE_SCRIPT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxC43z42rdB
 URL_FACEBOOK = "https://www.facebook.com/share/1CN5wrLMTH/?mibextid=wwXIfr"
 URL_INSTAGRAM = "https://www.instagram.com/babayork_urban?dmpr=MWp6ejF2emtwcWVweA=="
 WHATSAPP_NUMERO = "593959276539"
+
+def obtener_logo_base64():
+    candidatos = [
+        ("logo_marys_horizontal.png", "image/png"),
+        ("logo_marys_horizontal.jpg", "image/jpeg"),
+        ("logo_marys_horizontal.jpeg", "image/jpeg"),
+        ("logo_marys_ec.png", "image/png"),
+        ("logo_marys_ec.jpg", "image/jpeg"),
+        ("logo_marys_ec.jpeg", "image/jpeg"),
+    ]
+    for ruta, mime in candidatos:
+        if os.path.exists(ruta):
+            with open(ruta, "rb") as img_f:
+                return mime, base64.b64encode(img_f.read()).decode("utf-8")
+    return None, None
 
 def enviar_a_google_sheet(payload):
     if not GOOGLE_SCRIPT_WEBHOOK_URL:
@@ -100,6 +116,26 @@ st.markdown("""
     .top-utility-highlight {
         color: #9E1B32;
         font-weight: 700;
+    }
+    /* Imagen de logotipo integrada sin recuadro y con mayor tamaño */
+    .header-logo-container {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        overflow: hidden;
+        margin: -10px 0;
+    }
+    .header-logo-img {
+        width: 100%;
+        max-width: 325px;
+        height: auto;
+        display: block;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        filter: brightness(1.03) contrast(1.05);
+        mix-blend-mode: multiply;
     }
     /* Logotipo Horizontal @marys_store_ec (Sello circular doble aro + tipografía editorial) */
     .brand-logo-wrap {
@@ -601,14 +637,13 @@ st.markdown(f"""
 h_col_logo, h_col_search, h_col_actions = st.columns([2.4, 3.9, 2.7], vertical_alignment="center")
 
 with h_col_logo:
-    # Prioriza el nuevo logotipo horizontal @marys_store_ec si lo subes a GitHub;
-    # mientras tanto muestra el sello circular oficial MS + tipografía editorial de @marys_store_ec.
-    if os.path.exists("logo_marys_horizontal.png"):
-        st.image("logo_marys_horizontal.png", width=230)
-    elif os.path.exists("logo_marys_horizontal.jpg"):
-        st.image("logo_marys_horizontal.jpg", width=230)
-    elif os.path.exists("logo_marys_ec.png"):
-        st.image("logo_marys_ec.png", width=230)
+    # Muestra tu logotipo subido a GitHub integrado sin recuadro y aprovechando el espacio de la columna
+    logo_mime, logo_b64 = obtener_logo_base64()
+    if logo_b64:
+        st.markdown(
+            f'<div class="header-logo-container"><img src="data:{logo_mime};base64,{logo_b64}" class="header-logo-img" alt="Mary\'s Store EC"></div>',
+            unsafe_allow_html=True
+        )
     else:
         st.markdown("""
         <div class="brand-logo-wrap">
