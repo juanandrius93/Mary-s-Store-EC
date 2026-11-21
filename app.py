@@ -23,7 +23,7 @@ GOOGLE_SCRIPT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxC43z42rdB
 
 # Enlaces Oficiales de Redes Sociales
 URL_FACEBOOK = "https://www.facebook.com/share/1CN5wrLMTH/?mibextid=wwXIfr"
-URL_INSTAGRAM = "https://www.instagram.com/babayork_urban?dmpr=MWp6ejF2emtwcWVweA=="
+URL_INSTAGRAM = "https://www.instagram.com/ec_marystore?dmpr=dDJiaWw4MDRybGRt&utm_source=qr"
 WHATSAPP_NUMERO = "593959276539"
 
 def obtener_ruta_logo():
@@ -71,7 +71,7 @@ def enviar_a_google_sheet(payload):
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with urllib.request.urlopen(req, timeout=25) as resp:
             return resp.status == 200
     except Exception:
         return False
@@ -548,6 +548,27 @@ def normalizar_id(valor):
         solo_digitos = "0" + solo_digitos
     return solo_digitos if solo_digitos else s
 
+def agregar_al_carrito(nuevo_item, stock_max=None):
+    mod_n = str(nuevo_item.get("modelo", "")).strip().lower()
+    col_n = str(nuevo_item.get("color", "")).strip().lower()
+    tal_n = str(nuevo_item.get("talla", "")).strip().lower()
+
+    for existente in st.session_state.carrito:
+        if (
+            str(existente.get("modelo", "")).strip().lower() == mod_n
+            and str(existente.get("color", "")).strip().lower() == col_n
+            and str(existente.get("talla", "")).strip().lower() == tal_n
+        ):
+            nueva_cant = int(existente["cantidad"]) + int(nuevo_item["cantidad"])
+            if stock_max is not None and nueva_cant > int(stock_max):
+                nueva_cant = int(stock_max)
+            existente["cantidad"] = nueva_cant
+            existente["subtotal"] = round(nueva_cant * float(existente["precio_unitario"]), 2)
+            return True, nueva_cant
+
+    st.session_state.carrito.append(nuevo_item)
+    return False, int(nuevo_item["cantidad"])
+
 def preparar_url_imagen(url):
     if pd.isna(url) or not str(url).strip():
         return "https://images.unsplash.com/photo-1543163521-1bf539c55dd2"
@@ -951,7 +972,7 @@ if st.session_state.producto_seleccionado is not None:
                 cant_det = st.number_input("Cantidad:", min_value=1, max_value=stock_det, value=1, step=1, key="det_cant_input")
             with cd2:
                 if st.button("🛒 AÑADIR AL CARRITO", type="primary", use_container_width=True, key="det_add_btn"):
-                    st.session_state.carrito.append({
+                    consolidado, cant_total_item = agregar_al_carrito({
                         "codigo": codigo_prod_det,
                         "modelo": nombre_mod_sel,
                         "categoria": cat_prod,
@@ -964,9 +985,12 @@ if st.session_state.producto_seleccionado is not None:
                         "min_may": int(min_may_d),
                         "subtotal": round(int(cant_det) * float(precio_base_det), 2),
                         "imagen": url_img_det
-                    })
+                    }, stock_max=stock_det)
                     st.session_state.orden_confirmada = None
-                    st.toast(f"✅ {nombre_mod_sel} ({color_sel_det} - Talla {talla_sel_det}) añadido al carrito.")
+                    if consolidado:
+                        st.toast(f"✅ Cantidad actualizada en tu carrito: {cant_total_item}x {nombre_mod_sel} ({color_sel_det} - Talla {talla_sel_det}).")
+                    else:
+                        st.toast(f"✅ {nombre_mod_sel} ({color_sel_det} - Talla {talla_sel_det}) añadido al carrito.")
                     st.rerun()
         else:
             st.markdown(f"<div class='stock-zero'>❌ Agotado en color {color_sel_det} y talla {talla_sel_det} (Stock: 0)</div>", unsafe_allow_html=True)
@@ -996,7 +1020,7 @@ if st.session_state.producto_seleccionado is not None:
         - **Modelo:** {nombre_mod_sel}
         - **Color seleccionado:** {color_sel_det}
         - **Material:** {mat_prod} de alta durabilidad y confort
-        - **Tallas disponibles:** Horma nacional (34 al 44)
+        - **Tallas disponibles:** 34 al 44
         - **Envíos:** A todo el Ecuador por Servientrega o Cooperativa de Transporte.
         """)
         
@@ -1215,7 +1239,7 @@ elif st.session_state.vista_actual in ["DETAL", "MAYORISTA"]:
                             with c_btn:
                                 if st.button("🛒 Agregar", key=f"btn_{nombre_modelo}_{idx}", use_container_width=True, type="primary"):
                                     codigo_prod_grid = formatear_codigo_producto(fila_color.get("ID_Variante", "001"))
-                                    st.session_state.carrito.append({
+                                    consolidado, cant_total_item = agregar_al_carrito({
                                         "codigo": codigo_prod_grid,
                                         "modelo": nombre_modelo,
                                         "categoria": categoria_mod,
@@ -1228,9 +1252,12 @@ elif st.session_state.vista_actual in ["DETAL", "MAYORISTA"]:
                                         "min_may": int(min_may),
                                         "subtotal": round(int(cantidad_pedir) * float(precio_aplicado), 2),
                                         "imagen": url_limpia
-                                    })
+                                    }, stock_max=stock_disponible)
                                     st.session_state.orden_confirmada = None
-                                    st.toast(f"✅ {nombre_modelo} ({color_elegido} - Talla {talla_elegida}) agregado al carrito.")
+                                    if consolidado:
+                                        st.toast(f"✅ Cantidad actualizada en tu carrito: {cant_total_item}x {nombre_modelo} ({color_elegido} - Talla {talla_elegida}).")
+                                    else:
+                                        st.toast(f"✅ {nombre_modelo} ({color_elegido} - Talla {talla_elegida}) agregado al carrito.")
                                     st.rerun()
                         else:
                             st.markdown("<div class='stock-zero'>❌ Agotado en este color y talla (0)</div>", unsafe_allow_html=True)
@@ -1383,7 +1410,8 @@ elif st.session_state.vista_actual == "CARRITO":
                     envio_final = costo_envio_calc
                     recargo_payphone = round(subtotal_general * 0.06, 2) if "PayPhone" in metodo_pago else 0.0
                     total_pagar = round(subtotal_general + envio_final + recargo_payphone, 2)
-                    puntos_ganados = int(total_pares_carrito * 10)
+                    es_compra_mayorista = any(total_pares_carrito >= it["min_may"] for it in st.session_state.carrito)
+                    puntos_ganados = 0 if es_compra_mayorista else int(subtotal_general // 50) * 10
                     
                     fecha_actual_str = ahora_ecuador().strftime("%d/%m/%Y %H:%M")
                     num_orden_unico = f"ORD-{ahora_ecuador().strftime('%m%d')}-{random.randint(1000, 9999)}"
@@ -1408,8 +1436,9 @@ elif st.session_state.vista_actual == "CARRITO":
                         num_orden_unico, fecha_actual_str, datos_cli, carrito_copia,
                         total_pares_carrito, subtotal_general, envio_final, recargo_payphone, total_pagar
                     )
+                    pdf_base64_str = base64.b64encode(pdf_generado).decode("utf-8")
                     
-                    # Enviar automáticamente la orden y el cliente al Google Sheet en estado PENDIENTE
+                    # Enviar automáticamente la orden, el PDF en base64 y el cliente al Google Sheet en estado PENDIENTE
                     items_para_stock = []
                     for it in carrito_copia:
                         p_u_env = it["precio_may"] if total_pares_carrito >= it["min_may"] else it["precio_ofe"]
@@ -1419,7 +1448,8 @@ elif st.session_state.vista_actual == "CARRITO":
                             "talla": it["talla"],
                             "cantidad": it["cantidad"],
                             "precio_unitario": round(float(p_u_env), 2),
-                            "subtotal": round(float(p_u_env) * int(it["cantidad"]), 2)
+                            "subtotal": round(float(p_u_env) * int(it["cantidad"]), 2),
+                            "es_mayorista": es_compra_mayorista
                         })
                     enviar_a_google_sheet({
                         "accion": "nuevo_pedido",
@@ -1440,7 +1470,10 @@ elif st.session_state.vista_actual == "CARRITO":
                         "recargo_pp": recargo_payphone,
                         "total": total_pagar,
                         "metodo_pago": metodo_pago,
-                        "guardar_fidelidad": guardar_fidelidad
+                        "guardar_fidelidad": guardar_fidelidad,
+                        "es_mayorista": es_compra_mayorista,
+                        "pdf_nombre": f"{num_orden_unico}.pdf",
+                        "pdf_base64": pdf_base64_str
                     })
                     st.cache_data.clear()
 
@@ -1455,6 +1488,7 @@ elif st.session_state.vista_actual == "CARRITO":
                         "recargo_pp": recargo_payphone,
                         "total": total_pagar,
                         "puntos": puntos_ganados,
+                        "es_mayorista": es_compra_mayorista,
                         "pdf_bytes": pdf_generado
                     }
 
@@ -1463,7 +1497,12 @@ elif st.session_state.vista_actual == "CARRITO":
                 oc = st.session_state.orden_confirmada
                 dc = oc["datos_cli"]
                 
-                st.success(f"🎉 ¡Orden #{oc['num_orden']} lista, {dc['nombres']}! Con esta compra sumas **{oc['puntos']} puntos** en el Club de Fidelidad.")
+                if oc.get("es_mayorista"):
+                    st.success(f"🎉 ¡Orden #{oc['num_orden']} lista, {dc['nombres']}! Se aplicó precio mayorista (las compras mayoristas no acumulan puntos de fidelidad).")
+                elif oc["puntos"] > 0:
+                    st.success(f"🎉 ¡Orden #{oc['num_orden']} lista, {dc['nombres']}! Con esta compra sumas **{oc['puntos']} puntos** en el Club de Fidelidad (10 puntos por cada $50).")
+                else:
+                    st.success(f"🎉 ¡Orden #{oc['num_orden']} lista, {dc['nombres']}! Recuerda que acumulas 10 puntos por cada $50 en compras al detal.")
                 
                 with st.container(border=True):
                     st.markdown(f"### 📋 Resumen Oficial de tu Pedido (#{oc['num_orden']})")
@@ -1620,7 +1659,7 @@ elif st.session_state.vista_actual == "LOGIN":
                 st.subheader("⭐ Tu Club de Fidelidad")
                 st.metric("Puntos Acumulados", f"{puntos_actuales} Puntos")
                 st.metric("Pares Comprados", f"{pares_actuales} Pares")
-                st.info("🎁 **Meta 50 Puntos (5 pares):** Ganas un **Envío Gratis** o acceso a **Promoción 2x1** coordinando directamente por nuestro WhatsApp 0959276539.")
+                st.info("🎁 **Meta 50 Puntos:** Por cada **$50** en compras al detal acumulas **10 puntos** (no aplica a compras mayoristas). Al llegar a 50 puntos ganas un **Envío Gratis** o acceso a **Promoción 2x1** coordinando por WhatsApp 0959276539.")
                 if st.button("🔒 Cerrar Sesión", use_container_width=True):
                     st.session_state.usuario_logueado = None
                     st.rerun()
@@ -1816,8 +1855,8 @@ elif st.session_state.vista_actual == "INFO":
             st.markdown("""
             **¿Por qué es importante registrar tus datos y tu Cédula al comprar?**
             - Tu **Número de Cédula** es tu identificador único en nuestro sistema.
-            - Por cada par de calzado que compras, acumulas **10 Puntos de Fidelidad**.
-            - Al alcanzar **50 puntos (5 pares acumulados)**, desbloqueas una recompensa especial a tu elección:
+            - Por cada **$50** en tu compra al detal, acumulas **10 Puntos de Fidelidad** *(no aplica a compras mayoristas)*.
+            - Al alcanzar **50 puntos**, desbloqueas una recompensa especial a tu elección:
               - 🚚 **Un Envío Nacional 100% GRATIS**, o
               - 👠 **Promoción especial 2x1** en modelos seleccionados de temporada.
             
